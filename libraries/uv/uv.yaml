@@ -21,15 +21,33 @@ match:
         fi
     
     # Get old version before bump
-    - shell: /usr/bin/uv version --format json | python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"
+    - shell: /usr/bin/uv version --output-format json
+      capture: OLD_INFO
+    - python: |
+        import json
+        import os
+        info = json.loads(os.environ['OLD_INFO'])
+        print(info['version'])
       capture: OLD_VERSION
+    - python: |
+        import json
+        import os
+        info = json.loads(os.environ['OLD_INFO'])
+        print(info['package_name'])
+      capture: PACKAGE_NAME
     
     # Execute the bump
     - shell: /usr/bin/uv {{args.all}}
       capture: UV_OUTPUT
     
     # Get new version after bump
-    - shell: /usr/bin/uv version --format json | python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"
+    - shell: /usr/bin/uv version --output-format json
+      capture: NEW_INFO
+    - python: |
+        import json
+        import os
+        info = json.loads(os.environ['NEW_INFO'])
+        print(info['version'])
       capture: NEW_VERSION
     
     # Update changelog if it exists
@@ -64,18 +82,19 @@ match:
         # Stage all changes
         /usr/bin/git add -A
         
-        # Commit
-        /usr/bin/git commit -m "chore: bump version from ${OLD_VERSION} to ${NEW_VERSION}"
+        # Commit with package name
+        /usr/bin/git commit -m "chore(${PACKAGE_NAME}): bump version from ${OLD_VERSION} to ${NEW_VERSION}"
         
-        # Tag
-        /usr/bin/git tag "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+        # Tag with package name
+        TAG_NAME="${PACKAGE_NAME}-v${NEW_VERSION}"
+        /usr/bin/git tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
         
-        echo "✓ Bumped version: ${OLD_VERSION} → ${NEW_VERSION}" >&2
-        echo "✓ Created tag: v${NEW_VERSION}" >&2
+        echo "✓ Bumped ${PACKAGE_NAME}: ${OLD_VERSION} → ${NEW_VERSION}" >&2
+        echo "✓ Created tag: ${TAG_NAME}" >&2
         echo "" >&2
         echo "Next steps:" >&2
         echo "  git push origin main" >&2
-        echo "  git push origin v${NEW_VERSION}" >&2
+        echo "  git push origin ${TAG_NAME}" >&2
     
     # Show uv output
     - shell: echo "$UV_OUTPUT"
@@ -112,15 +131,33 @@ match:
         fi
     
     # Get old version before setting
-    - shell: /usr/bin/uv version --format json | python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"
+    - shell: /usr/bin/uv version --output-format json
+      capture: OLD_INFO
+    - python: |
+        import json
+        import os
+        info = json.loads(os.environ['OLD_INFO'])
+        print(info['version'])
       capture: OLD_VERSION
+    - python: |
+        import json
+        import os
+        info = json.loads(os.environ['OLD_INFO'])
+        print(info['package_name'])
+      capture: PACKAGE_NAME
     
     # Set the new version
     - shell: /usr/bin/uv {{args.all}}
       capture: UV_OUTPUT
     
     # Get new version after setting
-    - shell: /usr/bin/uv version --format json | python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"
+    - shell: /usr/bin/uv version --output-format json
+      capture: NEW_INFO
+    - python: |
+        import json
+        import os
+        info = json.loads(os.environ['NEW_INFO'])
+        print(info['version'])
       capture: NEW_VERSION
     
     # Update changelog
@@ -155,24 +192,27 @@ match:
         # Stage all changes
         /usr/bin/git add -A
         
+        # Tag with package name
+        TAG_NAME="${PACKAGE_NAME}-v${NEW_VERSION}"
+        
         # Determine if this is initial version or version change
         if [ "$OLD_VERSION" = "0.0.0" ] || [ -z "$(/usr/bin/git tag -l)" ]; then
             # Initial version
-            /usr/bin/git commit -m "chore: initial version ${NEW_VERSION}"
+            /usr/bin/git commit -m "chore(${PACKAGE_NAME}): initial version ${NEW_VERSION}"
         else
             # Version change
-            /usr/bin/git commit -m "chore: set version from ${OLD_VERSION} to ${NEW_VERSION}"
+            /usr/bin/git commit -m "chore(${PACKAGE_NAME}): set version from ${OLD_VERSION} to ${NEW_VERSION}"
         fi
         
         # Tag
-        /usr/bin/git tag "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+        /usr/bin/git tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
         
-        echo "✓ Set version: ${OLD_VERSION} → ${NEW_VERSION}" >&2
-        echo "✓ Created tag: v${NEW_VERSION}" >&2
+        echo "✓ Set ${PACKAGE_NAME}: ${OLD_VERSION} → ${NEW_VERSION}" >&2
+        echo "✓ Created tag: ${TAG_NAME}" >&2
         echo "" >&2
         echo "Next steps:" >&2
         echo "  git push origin main" >&2
-        echo "  git push origin v${NEW_VERSION}" >&2
+        echo "  git push origin ${TAG_NAME}" >&2
     
     # Show uv output and exit successfully
     - shell: |
@@ -191,15 +231,17 @@ match:
         
         # Check if current version is tagged
         result = subprocess.run(
-            ["/usr/bin/uv", "version", "--format", "json"],
+            ["/usr/bin/uv", "version", "--output-format", "json"],
             capture_output=True,
             text=True
         )
         
         if result.returncode == 0:
             import json
-            version = json.loads(result.stdout)['version']
-            tag = f"v{version}"
+            data = json.loads(result.stdout)
+            version = data['version']
+            package = data['package_name']
+            tag = f"{package}-v{version}"
             
             # Check if tag exists
             tag_check = subprocess.run(
