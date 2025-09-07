@@ -1,0 +1,60 @@
+# mixed.yaml - Show how templates and code naturally coexist
+# Usage: ry examples/mixed.yaml [filename] [threshold]
+
+steps:
+  # Templates in shell commands
+  - shell: |
+      echo "Processing file: {{args.0|data.json}}"
+      echo "Threshold: {{args.1|10}}"
+      echo "User: {{env.USER}}"
+  
+  # Natural Python with no escaping needed!
+  - python: |
+      # Look ma, no escaping!
+      config = {
+          "host": "localhost",
+          "port": 8080,
+          "features": {"auth", "logging", "metrics"}
+      }
+      
+      # F-strings work naturally
+      print(f"Server config: {config['host']}:{config['port']}")
+      
+      # Set comprehensions work
+      enabled = {f for f in config["features"] if f != "metrics"}
+      print(f"Enabled features: {enabled}")
+  
+  # Mix templates with natural Python
+  - python: |
+      import json
+      
+      # Template for user input
+      filename = "{{args.0|data.json}}"
+      threshold = {{args.1|10}}
+      
+      # Natural Python dict and f-string
+      result = {
+          "file": filename,
+          "threshold": threshold,
+          "status": "processed"
+      }
+      
+      print(f"Processing {result['file']} with threshold {result['threshold']}")
+      print(json.dumps(result, indent=2))
+  
+  # Even complex structures work
+  - python: |
+      # Lambda with dict
+      process = lambda x: {"value": x, "squared": x**2}
+      
+      # List comprehension with dict
+      results = [{"n": i, "data": process(i)} for i in range(5)]
+      
+      # Format strings in dict
+      summary = {
+          f"item_{i}": f"Value is {r['data']['value']}"
+          for i, r in enumerate(results)
+      }
+      
+      print("No escaping needed anywhere!")
+      print(summary)

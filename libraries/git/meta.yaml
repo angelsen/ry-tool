@@ -1,0 +1,18 @@
+# Library metadata
+name: git
+version: 0.1.0
+description: Enhanced git workflow with conventional commits
+author: Fredrik Angelsen
+
+requires:
+  - git
+
+provides:
+  - commit validation
+  - AI signature stripping  
+  - push protection for main/master
+
+usage: |
+  ry libraries/git/git.yaml add .
+  ry libraries/git/git.yaml commit "feat: add new feature"
+  ry libraries/git/git.yaml push

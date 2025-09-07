@@ -1,0 +1,68 @@
+# git.yaml - Enhanced git workflow with validation
+# Usage: ry libraries/git/git.yaml <command> [args...]
+
+match:
+  commit:
+    # Validate and clean commit message
+    - python: |
+        import sys
+        import subprocess
+        import os
+        
+        # Get commit message from args
+        msg = "{{args.1}}"
+        if not msg or msg == "{{args.1}}":
+            print("FAIL: no commit message provided", file=sys.stderr)
+            print("  Usage: ry git.yaml commit 'message'", file=sys.stderr)
+            sys.exit(1)
+        
+        # Import our validators
+        sys.path.insert(0, os.path.dirname(__file__) + '/lib')
+        from strip_claude import strip_signatures
+        from validate_commit import validate_conventional
+        
+        # Clean the message
+        cleaned = strip_signatures(msg)
+        if cleaned != msg:
+            print("WARN: removed AI signatures from commit message", file=sys.stderr)
+        
+        # Validate format
+        is_valid, error = validate_conventional(cleaned)
+        if not is_valid:
+            print(f"FAIL: {error}", file=sys.stderr)
+            print("  Example: feat: add new feature", file=sys.stderr)
+            print("  Example: fix(api): handle null response", file=sys.stderr)
+            sys.exit(1)
+        
+        # Output cleaned message for next step
+        print(cleaned)
+      capture: CLEAN_MSG
+    
+    # Commit with cleaned message
+    - shell: git commit -m "$CLEAN_MSG"
+  
+  add:
+    - shell: git add {{args.rest}}
+    - shell: |
+        if [ -n "$(git diff --staged --name-only)" ]; then
+            echo "Files staged. Next: ry git.yaml commit 'message'" >&2
+        fi
+  
+  status:
+    - shell: git status {{args.rest|}}
+  
+  push:
+    # Check if on main/master
+    - shell: |
+        BRANCH=$(git branch --show-current)
+        if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            echo "FAIL: direct push to $BRANCH blocked" >&2
+            echo "  Run: git checkout -b feature/name" >&2
+            echo "  Run: git push -u origin feature/name" >&2
+            exit 1
+        fi
+    - shell: git push {{args.rest|}}
+  
+  # Pass through everything else
+  default:
+    - shell: git {{args.all}}

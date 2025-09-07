@@ -1,0 +1,66 @@
+# ry - YAML Command Orchestrator
+
+## Overview
+Pure YAML-to-shell command generator. Never executes, only generates commands for piping.
+
+## Key Concepts
+- YAML structures: steps, pipeline, parallel, match
+- Templates: {{var|default}} syntax (double braces)
+- Executors: python, shell (easily extensible)
+- Output: Always generates shell commands to stdout
+
+## Architecture
+- loader.py: YAML with dynamic tags (!env, !shell, !if)
+- generator.py: Orchestrates transformation
+- normalizer.py: YAML → canonical {"executor": "python", "script": "..."}
+- template.py: {{var|default}} substitution
+- executors/: Language-specific compilation (python -c, sh -c)
+
+## Usage Examples
+```bash
+ry config.yaml | sh           # Execute
+ry config.yaml arg1 arg2      # With arguments
+ry config.yaml > script.sh    # Save commands
+```
+
+## YAML Examples
+```yaml
+# Sequential
+steps:
+  - python: print("hello")
+  - shell: echo "world"
+
+# Pipeline (piped)
+pipeline:
+  - shell: echo "data"
+  - python: |
+      import sys
+      print(sys.stdin.read().upper())
+
+# Pattern matching
+match:
+  test: 
+    - shell: pytest
+  default:
+    - shell: echo "Unknown command"
+```
+
+## Templates
+- {{args.0|default}} - Arguments with defaults
+- {{env.VAR}} - Environment variables
+- Single braces {} work normally in Python/JS
+
+## Extension
+Add executor in ~10 lines:
+```python
+class RubyExecutor(Executor):
+    name = "ruby"
+    def compile(self, script, config=None):
+        return f"ruby -e {shlex.quote(script)}"
+```
+
+## Design Rules
+- Single responsibility per file
+- No execution, only generation
+- Use shlex.quote() for safe escaping
+- Templates use {{}} to avoid conflicts
