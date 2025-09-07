@@ -1,0 +1,26 @@
+# meta.yaml - Library metadata
+name: changelog
+version: 1.0.0
+description: Simple changelog management following Keep a Changelog format
+author: ry-tool
+
+features:
+  - Initialize CHANGELOG.md from template
+  - Update version sections automatically
+  - Keep a Changelog format compliance
+  - Semantic versioning support
+
+commands:
+  - init
+  - update
+  - show
+
+usage: |
+  # Initialize a new changelog
+  ry libraries/changelog/changelog.yaml init
+  
+  # Update version (usually called by uv bump)
+  ry libraries/changelog/changelog.yaml update 1.2.3
+  
+  # View changelog
+  ry libraries/changelog/changelog.yaml show

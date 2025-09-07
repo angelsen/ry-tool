@@ -1,0 +1,102 @@
+# changelog.yaml - Simple changelog management
+# Usage: ry libraries/changelog/changelog.yaml <command> [args...]
+
+match:
+  init:
+    # Create a new CHANGELOG.md from template
+    - python: |
+        import sys
+        from pathlib import Path
+        
+        changelog = Path('CHANGELOG.md')
+        if changelog.exists():
+            print("ERROR: CHANGELOG.md already exists", file=sys.stderr)
+            sys.exit(1)
+        
+        template = """# Changelog
+
+        All notable changes to this project will be documented in this file.
+
+        The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+        and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+        ## [Unreleased]
+
+        ### Added
+
+        ### Changed
+
+        ### Fixed
+
+        ### Removed
+
+        <!-- 
+        When version is bumped, the [Unreleased] section will automatically 
+        become the new version section. Make sure to add your changes above!
+        --->
+        """
+        # Remove leading whitespace from template
+        import textwrap
+        template = textwrap.dedent(template).strip() + "\n"
+        
+        changelog.write_text(template)
+        print("Created CHANGELOG.md")
+        print("Edit the [Unreleased] section to track your changes")
+  
+  update:
+    # Manually update version in changelog (usually called by uv bump)
+    - python: |
+        import sys
+        version = "{{args.1|}}"
+        if not version:
+            print("Usage: ry changelog.yaml update <version>", file=sys.stderr)
+            sys.exit(1)
+    
+    - python: |
+        import sys
+        from pathlib import Path
+        
+        # Add lib to path
+        lib_path = Path('libraries/changelog/lib').resolve()
+        sys.path.insert(0, str(lib_path))
+        
+        from update_version import update_changelog_version
+        
+        changelog = Path('CHANGELOG.md')
+        version = "{{args.1}}"
+        
+        if not changelog.exists():
+            print("ERROR: No CHANGELOG.md found", file=sys.stderr)
+            print("  Run: ry changelog.yaml init", file=sys.stderr)
+            sys.exit(1)
+        
+        if update_changelog_version(changelog, version):
+            print(f"Updated CHANGELOG.md with version {version}")
+        else:
+            print(f"ERROR: Failed to update changelog", file=sys.stderr)
+            print(f"  Make sure [Unreleased] section exists", file=sys.stderr)
+            sys.exit(1)
+  
+  show:
+    # Display current changelog
+    - shell: |
+        if [ -f CHANGELOG.md ]; then
+            cat CHANGELOG.md
+        else
+            echo "No CHANGELOG.md found" >&2
+            echo "  Run: ry changelog.yaml init" >&2
+            exit 1
+        fi
+  
+  # Default: show help
+  default:
+    - shell: |
+        echo "Changelog management commands:" >&2
+        echo "  init    - Create new CHANGELOG.md from template" >&2
+        echo "  update  - Update version in changelog" >&2
+        echo "  show    - Display current changelog" >&2
+        echo "" >&2
+        echo "Usage:" >&2
+        echo "  ry changelog.yaml init" >&2
+        echo "  ry changelog.yaml update 1.2.3" >&2
+        echo "  ry changelog.yaml show" >&2

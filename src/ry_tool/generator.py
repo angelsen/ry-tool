@@ -92,14 +92,29 @@ class CommandGenerator:
         # Find matching pattern
         matched = None
 
-        for pattern, action in patterns.items():
+        # Sort patterns by length (longest first) to match more specific patterns first
+        sorted_patterns = sorted(patterns.items(), 
+                                key=lambda x: len(x[0].split()), 
+                                reverse=True)
+        
+        for pattern, action in sorted_patterns:
             if pattern in ["default", "*"]:
                 continue
 
-            # Simple matching for now
-            if self.args and pattern == self.args[0]:
-                matched = action
-                break
+            # Check if pattern matches arguments
+            if self.args:
+                if " " in pattern:
+                    # Multi-word pattern: split and check if args starts with it
+                    pattern_parts = pattern.split()
+                    if len(self.args) >= len(pattern_parts):
+                        if self.args[:len(pattern_parts)] == pattern_parts:
+                            matched = action
+                            break
+                else:
+                    # Single word pattern: original behavior
+                    if pattern == self.args[0]:
+                        matched = action
+                        break
 
         # Use default if no match
         if matched is None:

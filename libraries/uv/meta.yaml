@@ -1,0 +1,24 @@
+# meta.yaml - Library metadata
+name: uv
+version: 1.0.0
+description: Enhanced uv operations with git integration
+author: ry-tool
+
+features:
+  - Automatic changelog updates on version bump
+  - Atomic git operations (commit + tag)
+  - Lockfile synchronization
+  - Clean git state validation
+
+commands:
+  - version --bump
+  - publish
+  - build
+
+usage: |
+  # Enhanced version bumping
+  uv version --bump minor
+  
+  # Regular uv commands pass through
+  uv add requests
+  uv sync

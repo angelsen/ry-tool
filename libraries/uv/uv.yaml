@@ -1,0 +1,235 @@
+# uv.yaml - Enhanced uv operations with git integration
+# Usage: ry libraries/uv/uv.yaml <command> [args...]
+
+match:
+  "version --bump":
+    # Enhanced bump workflow
+    - shell: |
+        # Check git is clean
+        if [ -n "$(/usr/bin/git status --porcelain)" ]; then
+            echo "ERROR: Working directory not clean" >&2
+            echo "  Commit or stash changes first" >&2
+            exit 1
+        fi
+        
+        # Check changelog exists
+        if [ ! -f "CHANGELOG.md" ]; then
+            echo "ERROR: No CHANGELOG.md found" >&2
+            echo "  Run: ry libraries/changelog/changelog.yaml init" >&2
+            echo "  Then update the [Unreleased] section with your changes" >&2
+            exit 1
+        fi
+    
+    # Get old version before bump
+    - shell: /usr/bin/uv version --format json | python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"
+      capture: OLD_VERSION
+    
+    # Execute the bump
+    - shell: /usr/bin/uv {{args.all}}
+      capture: UV_OUTPUT
+    
+    # Get new version after bump
+    - shell: /usr/bin/uv version --format json | python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"
+      capture: NEW_VERSION
+    
+    # Update changelog if it exists
+    - python: |
+        import sys
+        import os
+        from pathlib import Path
+        
+        # Add lib to path
+        lib_path = Path('libraries/changelog/lib').resolve()
+        sys.path.insert(0, str(lib_path))
+        
+        changelog = Path('CHANGELOG.md')
+        if changelog.exists():
+            from update_version import update_changelog_version
+            
+            old = os.environ.get('OLD_VERSION', '')
+            new = os.environ.get('NEW_VERSION', '')
+            
+            if old and new and old != new:
+                if update_changelog_version(changelog, new):
+                    print(f"Updated CHANGELOG.md: {old} → {new}", file=sys.stderr)
+    
+    # Sync dependencies to update lockfile
+    - shell: /usr/bin/uv sync --quiet
+    
+    # Atomic git operations
+    - shell: |
+        NEW_VERSION="${NEW_VERSION}"
+        OLD_VERSION="${OLD_VERSION}"
+        
+        # Stage all changes
+        /usr/bin/git add -A
+        
+        # Commit
+        /usr/bin/git commit -m "chore: bump version from ${OLD_VERSION} to ${NEW_VERSION}"
+        
+        # Tag
+        /usr/bin/git tag "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+        
+        echo "✓ Bumped version: ${OLD_VERSION} → ${NEW_VERSION}" >&2
+        echo "✓ Created tag: v${NEW_VERSION}" >&2
+        echo "" >&2
+        echo "Next steps:" >&2
+        echo "  git push origin main" >&2
+        echo "  git push origin v${NEW_VERSION}" >&2
+    
+    # Show uv output
+    - shell: echo "$UV_OUTPUT"
+
+  version:
+    # Check if setting a specific version (has a version number argument)
+    - python: |
+        import sys
+        import re
+        args = "{{args.rest|}}"
+        # Check if args contains a version number (e.g., 0.1.0, 1.2.3)
+        if args and re.match(r'^\d+\.\d+\.\d+', args.strip()):
+            sys.exit(0)  # Setting version - continue to enhanced workflow
+        else:
+            sys.exit(1)  # Just showing version - skip to passthrough
+      test: "[ $? -eq 0 ]"
+      fail: ""  # Silent fail, continue to next step
+    
+    # Enhanced version setting workflow (only runs if version number detected)
+    - shell: |
+        # Check git is clean
+        if [ -n "$(/usr/bin/git status --porcelain)" ]; then
+            echo "ERROR: Working directory not clean" >&2
+            echo "  Commit or stash changes first" >&2
+            exit 1
+        fi
+        
+        # Check changelog exists
+        if [ ! -f "CHANGELOG.md" ]; then
+            echo "ERROR: No CHANGELOG.md found" >&2
+            echo "  Run: ry libraries/changelog/changelog.yaml init" >&2
+            echo "  Then update the [Unreleased] section with your changes" >&2
+            exit 1
+        fi
+    
+    # Get old version before setting
+    - shell: /usr/bin/uv version --format json | python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"
+      capture: OLD_VERSION
+    
+    # Set the new version
+    - shell: /usr/bin/uv {{args.all}}
+      capture: UV_OUTPUT
+    
+    # Get new version after setting
+    - shell: /usr/bin/uv version --format json | python3 -c "import json, sys; print(json.load(sys.stdin)['version'])"
+      capture: NEW_VERSION
+    
+    # Update changelog
+    - python: |
+        import sys
+        import os
+        from pathlib import Path
+        
+        # Add lib to path
+        lib_path = Path('libraries/changelog/lib').resolve()
+        sys.path.insert(0, str(lib_path))
+        
+        changelog = Path('CHANGELOG.md')
+        if changelog.exists():
+            from update_version import update_changelog_version
+            
+            old = os.environ.get('OLD_VERSION', '')
+            new = os.environ.get('NEW_VERSION', '')
+            
+            if old and new and old != new:
+                if update_changelog_version(changelog, new):
+                    print(f"Updated CHANGELOG.md: {old} → {new}", file=sys.stderr)
+    
+    # Sync dependencies to update lockfile
+    - shell: /usr/bin/uv sync --quiet
+    
+    # Atomic git operations
+    - shell: |
+        NEW_VERSION="${NEW_VERSION}"
+        OLD_VERSION="${OLD_VERSION}"
+        
+        # Stage all changes
+        /usr/bin/git add -A
+        
+        # Determine if this is initial version or version change
+        if [ "$OLD_VERSION" = "0.0.0" ] || [ -z "$(/usr/bin/git tag -l)" ]; then
+            # Initial version
+            /usr/bin/git commit -m "chore: initial version ${NEW_VERSION}"
+        else
+            # Version change
+            /usr/bin/git commit -m "chore: set version from ${OLD_VERSION} to ${NEW_VERSION}"
+        fi
+        
+        # Tag
+        /usr/bin/git tag "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+        
+        echo "✓ Set version: ${OLD_VERSION} → ${NEW_VERSION}" >&2
+        echo "✓ Created tag: v${NEW_VERSION}" >&2
+        echo "" >&2
+        echo "Next steps:" >&2
+        echo "  git push origin main" >&2
+        echo "  git push origin v${NEW_VERSION}" >&2
+    
+    # Show uv output and exit successfully
+    - shell: |
+        echo "$UV_OUTPUT"
+        exit 0
+    
+    # Regular version command - just pass through (only runs if not setting version)
+    - shell: /usr/bin/uv {{args.all}}
+  
+  publish:
+    # Enhanced publish with pre-flight checks
+    - python: |
+        import sys
+        import subprocess
+        from pathlib import Path
+        
+        # Check if current version is tagged
+        result = subprocess.run(
+            ["/usr/bin/uv", "version", "--format", "json"],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            import json
+            version = json.loads(result.stdout)['version']
+            tag = f"v{version}"
+            
+            # Check if tag exists
+            tag_check = subprocess.run(
+                ["/usr/bin/git", "tag", "-l", tag],
+                capture_output=True,
+                text=True
+            )
+            
+            if not tag_check.stdout.strip():
+                print(f"ERROR: Version {version} is not tagged", file=sys.stderr)
+                print(f"  Expected tag: {tag}", file=sys.stderr)
+                print(f"  Run: uv version --bump patch", file=sys.stderr)
+                sys.exit(1)
+            
+            print(f"✓ Version {version} is tagged", file=sys.stderr)
+    
+    # Run the actual publish
+    - shell: /usr/bin/uv {{args.all}}
+  
+  build:
+    # Clean dist directory before building
+    - shell: |
+        if [ -d "dist" ]; then
+            echo "Cleaning dist/ directory..." >&2
+            rm -rf dist/*
+        fi
+    
+    # Run the build
+    - shell: /usr/bin/uv {{args.all}}
+  
+  # Pass through all other commands unchanged
+  default:
+    - shell: /usr/bin/uv {{args.all}}
