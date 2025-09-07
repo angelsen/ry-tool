@@ -226,14 +226,6 @@ class CommandGenerator:
             if executor:
                 cmd = executor.compile(step["script"], step.get("config"))
 
-                # Handle test condition
-                if "test" in step:
-                    test_cmd = f"if {step['test']}; then {cmd}; "
-                    if "fail" in step:
-                        test_cmd += f"else echo '{step['fail']}' >&2; exit 1; "
-                    test_cmd += "fi"
-                    cmd = test_cmd
-
                 # Handle capture directive
                 if "capture" in step:
                     cmd = f"export {step['capture']}=$({cmd})"

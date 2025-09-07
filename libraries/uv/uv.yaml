@@ -88,21 +88,15 @@ match:
     - shell: echo "$UV_OUTPUT"
 
   version:
-    # Check if setting a specific version (has a version number argument)
-    - python: |
-        import sys
-        import re
-        args = "{{args.rest|}}"
-        # Check if args contains a version number (e.g., 0.1.0, 1.2.3)
-        if args and re.match(r'^\d+\.\d+\.\d+', args.strip()):
-            sys.exit(0)  # Setting version - continue to enhanced workflow
-        else:
-            sys.exit(1)  # Just showing version - skip to passthrough
-      test: "[ $? -eq 0 ]"
-      fail: ""  # Silent fail, continue to next step
-    
-    # Enhanced version setting workflow (only runs if version number detected)
+    # Handle all version commands
     - shell: |
+        # If no version argument, just show current version and exit
+        if [ -z "{{args.rest|}}" ]; then
+            /usr/bin/uv version
+            exit 0
+        fi
+        
+        # Otherwise continue with version setting workflow
         # Check git is clean
         if [ -n "$(/usr/bin/git status --porcelain)" ]; then
             echo "ERROR: Working directory not clean" >&2
@@ -190,13 +184,8 @@ match:
         echo "  git push origin main" >&2
         echo "  git push origin ${TAG_NAME}" >&2
     
-    # Show uv output and exit successfully
-    - shell: |
-        echo "$UV_OUTPUT"
-        exit 0
-    
-    # Regular version command - just pass through (only runs if not setting version)
-    - shell: /usr/bin/uv {{args.all}}
+    # Show uv output
+    - shell: echo "$UV_OUTPUT"
   
   publish:
     # Enhanced publish with pre-flight checks

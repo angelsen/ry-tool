@@ -32,10 +32,8 @@ class Normalizer:
                 "script": 'echo "ERROR: Invalid step type" >&2; exit 1',
             }
 
-        # Extract special directives first (not part of config)
+        # Extract capture directive (not part of config)
         capture_var = step.pop("capture", None) if "capture" in step else None
-        test_condition = step.pop("test", None) if "test" in step else None
-        fail_message = step.pop("fail", None) if "fail" in step else None
 
         # Initialize normalized
         normalized = None
@@ -60,7 +58,7 @@ class Normalizer:
                         config = {
                             k: v
                             for k, v in step.items()
-                            if k not in [key, "capture", "test", "fail"]
+                            if k not in [key, "capture"]
                         }
                         normalized = {
                             "executor": self._normalize_executor_name(key),
@@ -76,13 +74,9 @@ class Normalizer:
                 "script": 'echo "ERROR: Unknown step type" >&2; exit 1',
             }
 
-        # Add special directives back to normalized form
+        # Add capture directive back to normalized form
         if capture_var:
             normalized["capture"] = capture_var
-        if test_condition:
-            normalized["test"] = test_condition
-        if fail_message:
-            normalized["fail"] = fail_message
 
         return normalized
 
