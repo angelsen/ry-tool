@@ -57,22 +57,23 @@ class TemplateProcessor:
         def replacer(match):
             expr = match.group(1)
             
-            # Split by pipe for defaults
-            for part in expr.split('|'):
-                part = part.strip()
-                
-                # Check context
-                if part in self.context:
-                    value = self.context[part]
-                    if value is not None:
-                        return str(value)
-                
-                # Not in context, treat as literal default
-                elif part:
-                    return part
+            # Split by pipe - first part is variable, rest is default
+            parts = expr.split('|', 1)  # Split only on first pipe
+            var_name = parts[0].strip()
             
-            # No default and not found - fail
-            print("FAIL: template variable '{expr}' not found", file=sys.stderr)
+            # Check if variable exists in context
+            if var_name in self.context:
+                value = self.context[var_name]
+                if value is not None:
+                    return str(value)
+            
+            # Variable not found or None, check for default
+            if len(parts) > 1:
+                # Everything after the pipe is the explicit default
+                return parts[1]  # Don't strip - preserve user's exact default
+            
+            # No default provided - fail
+            print(f"FAIL: template variable '{var_name}' not found", file=sys.stderr)
             sys.exit(1)
         
         return re.sub(pattern, replacer, text)

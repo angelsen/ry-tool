@@ -4,7 +4,7 @@
 match:
   diff:
     # Show diff and generate token if --staged
-    - shell: git diff {{args.rest|--staged}}
+    - shell: /usr/bin/git diff {{args.rest|--staged}}
     - python: |
         import sys
         import pathlib
@@ -83,30 +83,30 @@ match:
       capture: CLEAN_MSG
     
     # Commit with cleaned message
-    - shell: git commit -m "$CLEAN_MSG"
+    - shell: /usr/bin/git commit -m "$CLEAN_MSG"
   
   add:
-    - shell: git add {{args.rest}}
+    - shell: /usr/bin/git add {{args.rest}}
     - shell: |
-        if [ -n "$(git diff --staged --name-only)" ]; then
+        if [ -n "$(/usr/bin/git diff --staged --name-only)" ]; then
             echo "Files staged. Next: ry git.yaml commit 'message'" >&2
         fi
   
   status:
-    - shell: git status {{args.rest|}}
+    - shell: /usr/bin/git status {{args.rest|}}
   
   push:
     # Check if on main/master
     - shell: |
-        BRANCH=$(git branch --show-current)
+        BRANCH=$(/usr/bin/git branch --show-current)
         if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
             echo "FAIL: direct push to $BRANCH blocked" >&2
             echo "  Run: git checkout -b feature/name" >&2
             echo "  Run: git push -u origin feature/name" >&2
             exit 1
         fi
-    - shell: git push {{args.rest|}}
+    - shell: /usr/bin/git push {{args.rest|}}
   
   # Pass through everything else
   default:
-    - shell: git {{args.all}}
+    - shell: /usr/bin/git {{args.all}}

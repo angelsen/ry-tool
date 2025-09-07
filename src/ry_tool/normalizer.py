@@ -61,7 +61,7 @@ class Normalizer:
         
         if not normalized:
             # No recognized executor, treat as error
-            return {'executor': 'shell', 'script': f'echo "ERROR: Unknown step type" >&2; exit 1'}
+            return {'executor': 'shell', 'script': 'echo "ERROR: Unknown step type" >&2; exit 1'}
         
         # Add special directives back to normalized form
         if capture_var:

@@ -11,7 +11,7 @@ def get_staged_hash() -> str:
     """Get hash of staged content."""
     try:
         result = subprocess.run(
-            ["git", "diff", "--staged"],
+            ["/usr/bin/git", "diff", "--staged"],
             capture_output=True,
             text=True
         )
