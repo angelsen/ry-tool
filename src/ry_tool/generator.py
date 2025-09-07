@@ -19,22 +19,43 @@ class CommandGenerator:
     
     def generate(self) -> str:
         """Generate shell commands from config."""
+        # Handle env section first if present
+        env_commands = []
+        if 'env' in self.config:
+            for key, value in self.config['env'].items():
+                # Process templates in env values
+                if self.processor:
+                    value = self.processor.process(value)
+                env_commands.append(f"export {key}={value}")
+        
         # Identify structure and extract steps
+        main_commands = ""
         if 'pipeline' in self.config:
-            return self._handle_pipeline(self.config['pipeline'])
+            main_commands = self._handle_pipeline(self.config['pipeline'])
         
         elif 'parallel' in self.config:
-            return self._handle_parallel(self.config['parallel'])
+            main_commands = self._handle_parallel(self.config['parallel'])
         
         elif 'steps' in self.config:
-            return self._handle_steps(self.config['steps'])
+            main_commands = self._handle_steps(self.config['steps'])
         
         elif 'match' in self.config:
-            return self._handle_match(self.config['match'])
+            main_commands = self._handle_match(self.config['match'])
+        
+        elif 'if' in self.config:
+            main_commands = self._handle_conditional(self.config)
+        
+        elif 'foreach' in self.config:
+            main_commands = self._handle_foreach(self.config)
         
         else:
             # Single step
-            return self._handle_single(self.config)
+            main_commands = self._handle_single(self.config)
+        
+        # Combine env and main commands
+        if env_commands:
+            return '\n'.join(env_commands) + '\n' + main_commands
+        return main_commands
     
     def _handle_pipeline(self, config: Any) -> str:
         """Handle explicit pipeline structure."""
@@ -98,6 +119,77 @@ class CommandGenerator:
         context = PipelineContext(steps, PipeMode.SEQUENCE)
         return self._process_steps(context)
     
+    def _handle_conditional(self, config: Dict[str, Any]) -> str:
+        """Handle if/then/else structure."""
+        condition = config.get('if', '')
+        then_steps = config.get('then', [])
+        else_steps = config.get('else', [])
+        
+        # Process condition template
+        if self.processor:
+            condition = self.processor.process(condition)
+        
+        # Build conditional command
+        commands = []
+        commands.append(f"if {condition}; then")
+        
+        # Process then branch
+        if then_steps:
+            if isinstance(then_steps, list):
+                then_cmd = self._handle_steps(then_steps)
+            else:
+                then_cmd = self._handle_single(then_steps)
+            # Indent then commands
+            for line in then_cmd.split('\n'):
+                commands.append(f"  {line}")
+        
+        # Process else branch if present
+        if else_steps:
+            commands.append("else")
+            if isinstance(else_steps, list):
+                else_cmd = self._handle_steps(else_steps)
+            else:
+                else_cmd = self._handle_single(else_steps)
+            # Indent else commands
+            for line in else_cmd.split('\n'):
+                commands.append(f"  {line}")
+        
+        commands.append("fi")
+        return '\n'.join(commands)
+    
+    def _handle_foreach(self, config: Dict[str, Any]) -> str:
+        """Handle foreach loop structure."""
+        items = config.get('items', [])
+        var = config.get('var', 'item')
+        do_steps = config.get('do', [])
+        
+        # Process items template if string
+        if isinstance(items, str) and self.processor:
+            items = self.processor.process(items)
+        
+        # Build loop command
+        commands = []
+        if isinstance(items, list):
+            # Static list of items
+            items_str = ' '.join(f'"{item}"' for item in items)
+            commands.append(f"for {var} in {items_str}; do")
+        else:
+            # Dynamic items (e.g., glob or command output)
+            commands.append(f"for {var} in {items}; do")
+        
+        # Process loop body
+        if do_steps:
+            if isinstance(do_steps, list):
+                do_cmd = self._handle_steps(do_steps)
+            else:
+                do_cmd = self._handle_single(do_steps)
+            # Indent loop commands
+            for line in do_cmd.split('\n'):
+                commands.append(f"  {line}")
+        
+        commands.append("done")
+        return '\n'.join(commands)
+    
     def _process_steps(self, context: PipelineContext) -> str:
         """Process steps through the full pipeline."""
         # 1. Apply templates
@@ -114,9 +206,22 @@ class CommandGenerator:
             executor = registry.get(step['executor'])
             if executor:
                 cmd = executor.compile(step['script'], step.get('config'))
+                
+                # Handle test condition
+                if 'test' in step:
+                    test_cmd = f"if {step['test']}; then {cmd}; "
+                    if 'fail' in step:
+                        test_cmd += f"else echo '{step['fail']}' >&2; exit 1; "
+                    test_cmd += "fi"
+                    cmd = test_cmd
+                
+                # Handle capture directive
+                if 'capture' in step:
+                    cmd = f"export {step['capture']}=$({cmd})"
+                
                 commands.append(cmd)
             else:
-                commands.append(f"echo 'No executor: {step['executor']}' >&2")
+                commands.append(f"echo 'ERROR: No executor for {step.get('executor')}' >&2; exit 1")
         
         # 4. Join commands based on mode
         return self._join_commands(commands, context)

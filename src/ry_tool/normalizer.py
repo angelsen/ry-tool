@@ -16,7 +16,9 @@ class Normalizer:
         {
             'executor': 'shell|python|etc',
             'script': 'actual code',
-            'config': {...}  # Optional executor config
+            'config': {...},  # Optional executor config
+            'capture': 'VAR_NAME',  # Optional variable capture
+            'test': 'condition'  # Optional test condition
         }
         """
         if isinstance(step, str):
@@ -24,9 +26,15 @@ class Normalizer:
             return {'executor': 'shell', 'script': step}
         
         if not isinstance(step, dict):
-            return {'executor': 'shell', 'script': '# Invalid step'}
+            return {'executor': 'shell', 'script': 'echo "ERROR: Invalid step type" >&2; exit 1'}
+        
+        # Extract special directives first (not part of config)
+        capture_var = step.pop('capture', None) if 'capture' in step else None
+        test_condition = step.pop('test', None) if 'test' in step else None
+        fail_message = step.pop('fail', None) if 'fail' in step else None
         
         # Check for executor keys (python, shell, etc.)
+        normalized = None
         for key in ['python', 'py', 'shell', 'sh', 'bash']:
             if key in step:
                 value = step[key]
@@ -34,19 +42,36 @@ class Normalizer:
                 # Handle complex form: python: {script: "...", config...}
                 if isinstance(value, dict):
                     script = value.pop('script', '')
-                    return {
+                    normalized = {
                         'executor': self._normalize_executor_name(key),
                         'script': script,
                         'config': value  # Rest is config
                     }
-                
-                # Simple form: python: "..."
-                config = {k: v for k, v in step.items() if k != key}
-                return {
-                    'executor': self._normalize_executor_name(key),
-                    'script': value,
-                    'config': config
-                }
+                else:
+                    # Simple form: python: "..."
+                    # Don't include special directives in config
+                    config = {k: v for k, v in step.items() 
+                             if k not in [key, 'capture', 'test', 'fail']}
+                    normalized = {
+                        'executor': self._normalize_executor_name(key),
+                        'script': value,
+                        'config': config if config else None
+                    }
+                break
+        
+        if not normalized:
+            # No recognized executor, treat as error
+            return {'executor': 'shell', 'script': f'echo "ERROR: Unknown step type" >&2; exit 1'}
+        
+        # Add special directives back to normalized form
+        if capture_var:
+            normalized['capture'] = capture_var
+        if test_condition:
+            normalized['test'] = test_condition
+        if fail_message:
+            normalized['fail'] = fail_message
+            
+        return normalized
         
         # Handle special constructs
         if 'fail' in step:

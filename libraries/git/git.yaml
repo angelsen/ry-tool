@@ -1,8 +1,50 @@
-# git.yaml - Enhanced git workflow with validation
+# git.yaml - Enhanced git workflow with validation  
 # Usage: ry libraries/git/git.yaml <command> [args...]
 
 match:
+  diff:
+    # Show diff and generate token if --staged
+    - shell: git diff {{args.rest|--staged}}
+    - python: |
+        import sys
+        import pathlib
+        
+        # Only generate token for staged diffs
+        args = "{{args.rest|--staged}}"
+        if "--staged" in args or "--cached" in args:
+            lib_path = pathlib.Path('libraries/git/lib').resolve()
+            sys.path.insert(0, str(lib_path))
+            from token import get_current_token
+            
+            token, expires = get_current_token()
+            if token:
+                print(f"\nREVIEW_TOKEN={token}", file=sys.stderr)
+                print(f"# Expires in {expires} seconds", file=sys.stderr)
+  
   commit:
+    # Check review token - use !env to get it at YAML parse time
+    - python: |
+        import sys
+        import pathlib
+        
+        # Token passed from environment at ry invocation time
+        token = "{{env.REVIEW_TOKEN|}}"
+        
+        if not token:
+            print("FAIL: review staged changes first", file=sys.stderr)
+            print("  Run: ry git.yaml diff --staged", file=sys.stderr) 
+            print("  Then: REVIEW_TOKEN=<token> ry git.yaml commit 'message'", file=sys.stderr)
+            sys.exit(1)
+        
+        lib_path = pathlib.Path('libraries/git/lib').resolve()
+        sys.path.insert(0, str(lib_path))
+        from token import verify_token
+        
+        if not verify_token(token):
+            print("FAIL: invalid or expired token", file=sys.stderr)
+            print("  Run: ry git.yaml diff --staged (get fresh token)", file=sys.stderr)
+            sys.exit(1)
+    
     # Validate and clean commit message
     - python: |
         import sys
@@ -10,14 +52,16 @@ match:
         import os
         
         # Get commit message from args
-        msg = "{{args.1}}"
-        if not msg or msg == "{{args.1}}":
+        msg = "{{args.1|}}"
+        if not msg:
             print("FAIL: no commit message provided", file=sys.stderr)
             print("  Usage: ry git.yaml commit 'message'", file=sys.stderr)
             sys.exit(1)
         
         # Import our validators
-        sys.path.insert(0, os.path.dirname(__file__) + '/lib')
+        import pathlib
+        lib_path = pathlib.Path('libraries/git/lib').resolve()
+        sys.path.insert(0, str(lib_path))
         from strip_claude import strip_signatures
         from validate_commit import validate_conventional
         
@@ -34,7 +78,7 @@ match:
             print("  Example: fix(api): handle null response", file=sys.stderr)
             sys.exit(1)
         
-        # Output cleaned message for next step
+        # Output cleaned message
         print(cleaned)
       capture: CLEAN_MSG
     
