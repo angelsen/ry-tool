@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.2.0] - 2025-09-07
+
+### Added
 - Multi-word pattern matching support in `match:` blocks for commands like `"version --bump"`
 - `libraries/uv/` - Enhanced uv operations with automatic changelog updates and git integration
 - `libraries/changelog/` - Simple changelog management following Keep a Changelog format
