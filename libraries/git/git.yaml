@@ -12,7 +12,8 @@ match:
         # Only generate token for staged diffs
         args = "{{args.rest|--staged}}"
         if "--staged" in args or "--cached" in args:
-            lib_path = pathlib.Path('libraries/git/lib').resolve()
+            import os
+            lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
             sys.path.insert(0, str(lib_path))
             from token import get_current_token
             
@@ -26,6 +27,7 @@ match:
     - python: |
         import sys
         import pathlib
+        import os
         
         # Token passed from environment at ry invocation time
         token = "{{env.REVIEW_TOKEN|}}"
@@ -36,7 +38,7 @@ match:
             print("  Then: REVIEW_TOKEN=<token> ry git.yaml commit 'message'", file=sys.stderr)
             sys.exit(1)
         
-        lib_path = pathlib.Path('libraries/git/lib').resolve()
+        lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
         sys.path.insert(0, str(lib_path))
         from token import verify_token
         
@@ -60,7 +62,7 @@ match:
         
         # Import our validators
         import pathlib
-        lib_path = pathlib.Path('libraries/git/lib').resolve()
+        lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
         sys.path.insert(0, str(lib_path))
         from strip_claude import strip_signatures
         from validate_commit import validate_conventional

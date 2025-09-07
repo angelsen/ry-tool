@@ -1,58 +1,50 @@
 """
 ry - A pure YAML command orchestrator.
-Generates shell commands from YAML configurations with automatic templating.
+Core execution engine for YAML configurations.
 """
 
-import os
-import sys
 from pathlib import Path
 from typing import List
 
 from .loader import RyLoader
 from .template import TemplateProcessor
 from .generator import CommandGenerator
+from .packages import LibraryResolver
+from .context import ExecutionContext
 
 
 class RY:
-    """Pure YAML-based command generator with templating."""
+    """YAML-based command generator with templating."""
 
-    def __init__(self):
-        """Initialize ry."""
-        # Parse arguments
-        self.config_path, self.args = self._parse_args()
-
-        # Load configuration with custom YAML tags
+    def __init__(self, config_path: Path, args: List[str]):
+        """
+        Initialize ry with a configuration path and arguments.
+        
+        Args:
+            config_path: Path to YAML configuration file
+            args: Arguments to pass to the configuration
+        """
+        # Detect library directory if applicable
+        resolver = LibraryResolver()
+        library_dir = resolver.detect_library_dir(config_path)
+        
+        # Create execution context
+        self.context = ExecutionContext(
+            config_path=config_path,
+            args=args,
+            library_dir=library_dir
+        )
+        
         self.config = self._load_config()
-
-    def _parse_args(self) -> tuple[Path, List[str]]:
-        """Parse command line arguments."""
-        # Check for config file
-        if len(sys.argv) > 1 and sys.argv[1].endswith(".yaml"):
-            config_path = Path(sys.argv[1])
-            args = sys.argv[2:]
-        elif "RY_CONFIG" in os.environ:
-            config_path = Path(os.environ["RY_CONFIG"])
-            args = sys.argv[1:]
-        else:
-            print("FAIL: no config file specified", file=sys.stderr)
-            print("  Usage: ry <config.yaml> [args...]", file=sys.stderr)
-            print("  Or set: RY_CONFIG=path/to/config.yaml", file=sys.stderr)
-            sys.exit(1)
-
-        return config_path, args
 
     def _load_config(self) -> dict:
         """Load YAML configuration with custom loader."""
-        if not self.config_path.exists():
-            print(f"FAIL: config not found - {self.config_path}", file=sys.stderr)
-            sys.exit(1)
-
         # Create loader and set context
-        with open(self.config_path) as f:
+        with open(self.context.config_path) as f:
             # Create loader instance
             loader = RyLoader(f)
-            loader.args = self.args
-            loader.name = str(self.config_path)
+            loader.args = self.context.args
+            loader.name = str(self.context.config_path)
 
             # Load YAML with custom tags
             try:
@@ -63,12 +55,21 @@ class RY:
         return config or {}
 
     def run(self) -> int:
-        """Generate and output commands."""
+        """
+        Generate and output commands.
+        
+        Returns:
+            Exit code (0 for success)
+        """
         # Create template processor
-        processor = TemplateProcessor(self.args)
+        processor = TemplateProcessor(self.context.args)
 
-        # Create generator with config and processor
-        generator = CommandGenerator(self.config, self.args, processor)
+        # Create generator with context
+        generator = CommandGenerator(
+            self.config, 
+            self.context,
+            processor
+        )
 
         # Generate commands
         output = generator.generate()

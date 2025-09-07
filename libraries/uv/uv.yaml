@@ -51,25 +51,13 @@ match:
       capture: NEW_VERSION
     
     # Update changelog if it exists
-    - python: |
-        import sys
-        import os
-        from pathlib import Path
-        
-        # Add lib to path
-        lib_path = Path('libraries/changelog/lib').resolve()
-        sys.path.insert(0, str(lib_path))
-        
-        changelog = Path('CHANGELOG.md')
-        if changelog.exists():
-            from update_version import update_changelog_version
-            
-            old = os.environ.get('OLD_VERSION', '')
-            new = os.environ.get('NEW_VERSION', '')
-            
-            if old and new and old != new:
-                if update_changelog_version(changelog, new):
-                    print(f"Updated CHANGELOG.md: {old} → {new}", file=sys.stderr)
+    - shell: |
+        if [ -f "CHANGELOG.md" ] && [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+            # Use ry to update changelog properly
+            if command -v ry >/dev/null; then
+                ry changelog update "$NEW_VERSION" 2>/dev/null || true
+            fi
+        fi
     
     # Sync dependencies to update lockfile
     - shell: /usr/bin/uv sync --quiet
@@ -161,25 +149,13 @@ match:
       capture: NEW_VERSION
     
     # Update changelog
-    - python: |
-        import sys
-        import os
-        from pathlib import Path
-        
-        # Add lib to path
-        lib_path = Path('libraries/changelog/lib').resolve()
-        sys.path.insert(0, str(lib_path))
-        
-        changelog = Path('CHANGELOG.md')
-        if changelog.exists():
-            from update_version import update_changelog_version
-            
-            old = os.environ.get('OLD_VERSION', '')
-            new = os.environ.get('NEW_VERSION', '')
-            
-            if old and new and old != new:
-                if update_changelog_version(changelog, new):
-                    print(f"Updated CHANGELOG.md: {old} → {new}", file=sys.stderr)
+    - shell: |
+        if [ -f "CHANGELOG.md" ] && [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+            # Use ry to update changelog properly
+            if command -v ry >/dev/null; then
+                ry changelog update "$NEW_VERSION" 2>/dev/null || true
+            fi
+        fi
     
     # Sync dependencies to update lockfile
     - shell: /usr/bin/uv sync --quiet

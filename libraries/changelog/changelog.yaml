@@ -57,7 +57,8 @@ match:
         from pathlib import Path
         
         # Add lib to path
-        lib_path = Path('libraries/changelog/lib').resolve()
+        import os
+        lib_path = Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
         sys.path.insert(0, str(lib_path))
         
         from update_version import update_changelog_version

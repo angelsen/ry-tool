@@ -1,0 +1,57 @@
+{
+  "version": "1.0.0",
+  "base_url": "https://angelsen.github.io/ry-tool/libraries",
+  "libraries": {
+    "site-builder": {
+      "files": [
+        "lib/build.py",
+        "meta.yaml",
+        "site-builder.yaml"
+      ],
+      "entry": "site-builder.yaml",
+      "description": "Static site generator for project registries",
+      "version": "1.0.0",
+      "author": "angelsen"
+    },
+    "uv": {
+      "files": [
+        "lib/get_version_info.py",
+        "meta.yaml",
+        "uv.yaml"
+      ],
+      "entry": "uv.yaml",
+      "description": "Enhanced uv operations with git integration",
+      "version": "1.0.0",
+      "author": "ry-tool"
+    },
+    "changelog": {
+      "files": [
+        "changelog.yaml",
+        "lib/__pycache__/update_version.cpython-312.pyc",
+        "lib/__pycache__/update_version.cpython-313.pyc",
+        "lib/update_version.py",
+        "meta.yaml"
+      ],
+      "entry": "changelog.yaml",
+      "description": "Simple changelog management following Keep a Changelog format",
+      "version": "1.0.0",
+      "author": "ry-tool"
+    },
+    "git": {
+      "files": [
+        "git.yaml",
+        "lib/__pycache__/strip_claude.cpython-312.pyc",
+        "lib/__pycache__/token.cpython-312.pyc",
+        "lib/__pycache__/validate_commit.cpython-312.pyc",
+        "lib/strip_claude.py",
+        "lib/token.py",
+        "lib/validate_commit.py",
+        "meta.yaml"
+      ],
+      "entry": "git.yaml",
+      "description": "Enhanced git workflow with conventional commits",
+      "version": "0.1.0",
+      "author": "Fredrik Angelsen"
+    }
+  }
+}

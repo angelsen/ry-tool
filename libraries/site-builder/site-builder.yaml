@@ -1,0 +1,107 @@
+# site-builder - Static site generator for project registries
+# Generates beautiful GitHub Pages sites from registry.json or packages.json
+#
+# Library script execution:
+# - $RY_LIBRARY_DIR is automatically exported when running libraries
+# - Use it to reference library files: python $RY_LIBRARY_DIR/lib/script.py
+
+match:
+  init:
+    - shell: |
+        if [ -f "site.yaml" ]; then
+          echo "site.yaml already exists"
+          exit 1
+        fi
+        
+        # Detect project type
+        PROJECT_NAME=$(basename "$PWD")
+        if [ -f "registry.json" ] || [ -f "docs/registry.json" ]; then
+          ICON="🚀"
+          ITEM_TYPE="library"
+        elif [ -f "packages.json" ]; then
+          ICON="📦"  
+          ITEM_TYPE="package"
+        else
+          ICON="📁"
+          ITEM_TYPE="item"
+        fi
+        
+        # Find registry file
+        REGISTRY=$(find . -name "registry.json" -o -name "packages.json" 2>/dev/null | head -1 | sed 's|^\./||')
+        [ -z "$REGISTRY" ] && REGISTRY="registry.json"
+        
+        # Create site.yaml
+        cat > site.yaml << EOF
+        # Site configuration for ${PROJECT_NAME}
+        project: ${PROJECT_NAME}
+        title: ${PROJECT_NAME}
+        icon: "${ICON}"
+        description: "Project registry and documentation"
+        
+        # Registry location
+        registry: "${REGISTRY}"
+        item_type: ${ITEM_TYPE}
+        
+        # Installation methods
+        setup:
+          - name: uv
+            command: "uv tool install ${PROJECT_NAME}"
+            default: true
+          - name: pipx
+            command: "pipx install ${PROJECT_NAME}"
+          - name: pip
+            command: "pip install ${PROJECT_NAME}"
+        
+        # Repository
+        repo: "https://github.com/angelsen/${PROJECT_NAME}"
+        EOF
+        
+        echo "✅ Created site.yaml - edit to customize"
+  
+  build:
+    - shell: |
+        if [ ! -f "site.yaml" ]; then
+          echo "ERROR: site.yaml not found"
+          echo "Run: ry site-builder init"
+          exit 1
+        fi
+    # Use $RY_LIBRARY_DIR to reference library files
+    - shell: python $RY_LIBRARY_DIR/lib/build.py
+    - shell: echo "✅ Generated docs/index.html"
+  
+  preview:
+    - shell: |
+        if [ ! -f "site.yaml" ]; then
+          echo "ERROR: site.yaml not found"
+          echo "Run: ry site-builder init"
+          exit 1
+        fi
+    - match: build
+    - shell: |
+        if command -v python3 >/dev/null; then
+          echo "📡 Serving at http://localhost:8000"
+          echo "Press Ctrl+C to stop"
+          cd docs && python3 -m http.server
+        else
+          echo "Python3 not found - cannot start preview server"
+          exit 1
+        fi
+  
+  clean:
+    - shell: |
+        if [ -f "docs/index.html" ]; then
+          rm docs/index.html
+          echo "✅ Removed docs/index.html"
+        else
+          echo "No index.html to clean"
+        fi
+  
+  default:
+    - shell: |
+        echo "Usage: ry site-builder <command>"
+        echo ""
+        echo "Commands:"
+        echo "  init     Create site.yaml configuration"
+        echo "  build    Generate docs/index.html from registry"
+        echo "  preview  Build and serve locally at :8000"
+        echo "  clean    Remove generated files"

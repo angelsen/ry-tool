@@ -7,21 +7,24 @@ from typing import Any, Dict, List
 from .pipeline import PipelineContext, PipeMode
 from .normalizer import Normalizer
 from .executors import registry
+from .context import ExecutionContext
 
 
 class CommandGenerator:
     """Orchestrate command generation from YAML config."""
 
-    def __init__(self, config: Dict[str, Any], args: List[str], processor=None):
+    def __init__(self, config: Dict[str, Any], context: ExecutionContext, processor=None):
         self.config = config
-        self.args = args
+        self.context = context
         self.processor = processor
         self.normalizer = Normalizer()
 
     def generate(self) -> str:
         """Generate shell commands from config."""
-        # Handle env section first if present
-        env_commands = []
+        # Get environment exports from context
+        env_commands = self.context.get_env_exports()
+        
+        # Add env section from config if present
         if "env" in self.config:
             for key, value in self.config["env"].items():
                 # Process templates in env values
@@ -102,17 +105,17 @@ class CommandGenerator:
                 continue
 
             # Check if pattern matches arguments
-            if self.args:
+            if self.context.args:
                 if " " in pattern:
                     # Multi-word pattern: split and check if args starts with it
                     pattern_parts = pattern.split()
-                    if len(self.args) >= len(pattern_parts):
-                        if self.args[:len(pattern_parts)] == pattern_parts:
+                    if len(self.context.args) >= len(pattern_parts):
+                        if self.context.args[:len(pattern_parts)] == pattern_parts:
                             matched = action
                             break
                 else:
                     # Single word pattern: original behavior
-                    if pattern == self.args[0]:
+                    if pattern == self.context.args[0]:
                         matched = action
                         break
 

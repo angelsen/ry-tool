@@ -40,6 +40,16 @@ match:
     - shell: echo "Usage: ry task.yaml [test|build]"
 ```
 
+### Multi-word Pattern Matching
+
+```yaml
+match:
+  "version --bump":  # Matches: uv version --bump minor
+    - shell: echo "Enhanced bump workflow"
+  version:           # Matches: uv version
+    - shell: echo "Regular version command"
+```
+
 ### Dynamic YAML Tags
 
 - `!env USER` - Environment variable
@@ -69,6 +79,35 @@ then:
   - shell: npm test
 else:
   - shell: npm run dev
+```
+
+## Bundled Libraries
+
+ry includes powerful libraries for common tasks:
+
+### git - Enhanced Git Workflows
+```bash
+ry libraries/git/git.yaml add .
+ry libraries/git/git.yaml commit "feat: add new feature"
+```
+- Review tokens ensure you review changes before committing
+- Automatic commit message validation
+- Branch protection for main/master
+
+### uv - Package-aware Version Management
+```bash
+ry libraries/uv/uv.yaml version --bump minor  # 0.1.0 → 0.2.0
+ry libraries/uv/uv.yaml version 1.0.0         # Set specific version
+```
+- Automatic CHANGELOG.md updates
+- Package-aware tagging (e.g., `my-package-v1.0.0`)
+- Atomic git operations (commit + tag)
+- Workspace support ready
+
+### changelog - Keep a Changelog Format
+```bash
+ry libraries/changelog/changelog.yaml init          # Create CHANGELOG.md
+ry libraries/changelog/changelog.yaml update 1.0.0  # Update version
 ```
 
 ## Examples

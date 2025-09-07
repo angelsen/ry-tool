@@ -1,23 +1,15 @@
 #!/usr/bin/env python3
 """
 ry - Run YAML orchestration
-A minimal, composable command orchestrator.
+Entry point for the ry command-line tool.
 """
 
-import sys
-from .core import RY
+from .app import run
 
 
 def main():
     """Main entry point for ry."""
-    try:
-        ry = RY()
-        sys.exit(ry.run())
-    except KeyboardInterrupt:
-        sys.exit(130)
-    except Exception as e:
-        print(f"FAIL: {e}", file=sys.stderr)
-        sys.exit(1)
+    run()
 
 
 if __name__ == "__main__":

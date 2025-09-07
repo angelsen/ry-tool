@@ -19,6 +19,35 @@ class RyLoader(yaml.SafeLoader):
         self.args = []  # Will be set by core
 
 
+def resolve_path(loader: RyLoader, path_str: str) -> Path:
+    """
+    Resolve a path relative to the YAML file location.
+    
+    If the path is absolute, return it as-is.
+    If relative, resolve it relative to the YAML file's directory.
+    
+    Args:
+        loader: The RyLoader instance
+        path_str: Path string to resolve
+        
+    Returns:
+        Resolved Path object
+    """
+    path = Path(path_str)
+    
+    # If already absolute, return as-is
+    if path.is_absolute():
+        return path
+    
+    # If loader has a name (YAML file path), resolve relative to it
+    if hasattr(loader, "name") and loader.name:
+        yaml_dir = Path(loader.name).parent
+        return yaml_dir / path_str
+    
+    # Fallback to path as-is (relative to CWD)
+    return path
+
+
 def construct_env(loader: RyLoader, node: yaml.ScalarNode) -> str:
     """Expand environment variables: !env "$USER"."""
     value = loader.construct_scalar(node)
@@ -73,14 +102,9 @@ def construct_if(loader: RyLoader, node: yaml.MappingNode) -> Any:
 def construct_include(loader: RyLoader, node: yaml.ScalarNode) -> Any:
     """Include another YAML file: !include common.yaml."""
     filename = loader.construct_scalar(node)
-
-    # Resolve relative to current file or working directory
-    include_path = Path(filename)
-    if not include_path.is_absolute():
-        # Try relative to current YAML file location
-        if hasattr(loader, "name") and loader.name:
-            yaml_dir = Path(loader.name).parent
-            include_path = yaml_dir / filename
+    
+    # Use utility to resolve path
+    include_path = resolve_path(loader, filename)
 
     if include_path.exists():
         with open(include_path) as f:
@@ -98,8 +122,9 @@ def construct_json(loader: RyLoader, node: yaml.ScalarNode) -> Any:
         # Inline JSON
         return json.loads(value)
     else:
-        # File path
-        json_path = Path(value)
+        # File path - use utility to resolve
+        json_path = resolve_path(loader, value)
+        
         if json_path.exists():
             with open(json_path) as f:
                 return json.load(f)
@@ -135,15 +160,22 @@ def construct_eval(loader: RyLoader, node: yaml.ScalarNode) -> Any:
 
 def construct_exists(loader: RyLoader, node: yaml.ScalarNode) -> bool:
     """Check if file/directory exists: !exists "path"."""
-    path = loader.construct_scalar(node)
-    return Path(path).exists()
+    path_str = loader.construct_scalar(node)
+    
+    # Use utility to resolve path
+    path = resolve_path(loader, path_str)
+    return path.exists()
 
 
 def construct_read(loader: RyLoader, node: yaml.ScalarNode) -> str:
     """Read file contents: !read "file.txt"."""
-    path = loader.construct_scalar(node)
+    filename = loader.construct_scalar(node)
+    
+    # Use utility to resolve path
+    file_path = resolve_path(loader, filename)
+    
     try:
-        return Path(path).read_text().strip()
+        return file_path.read_text().strip()
     except Exception:
         return ""
 

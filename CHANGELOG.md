@@ -8,12 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Complete package management system (`--install`, `--update`, `--uninstall`, `--list`, `--search`)
+- Developer tools (`--dev-check`, `--dev-new`, `--dev-registry`, `--dev-publish`)
+- `libraries/site-builder/` - Static site generator for GitHub Pages documentation
+- ExecutionContext class for clean state management
+- Custom CLI framework replacing typer dependency
+- Library resolver with XDG directory support
+- Automatic `$RY_LIBRARY_DIR` environment variable for libraries
+- Copy buttons on all code blocks in generated documentation
 
 ### Changed
+- Moved library detection from core.py to resolver.py (proper separation of concerns)
+- Libraries now use `$RY_LIBRARY_DIR` instead of hardcoded paths
+- Documentation site now shows "Libraries" (fixed typo from "Libraryies")
 
 ### Fixed
+- Critical indentation bug in normalizer.py causing undefined variable errors
+- Removed 60+ lines of dead code from normalizer.py
+- All ruff linting issues resolved
 
 ### Removed
+- Redundant `script:` step type (use shell with $RY_LIBRARY_DIR instead)
+- typer dependency (replaced with custom lightweight CLI)
 
 ## [0.2.0] - 2025-09-07
 

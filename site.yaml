@@ -1,0 +1,22 @@
+# Site configuration for ry-tool
+project: ry-tool
+title: "ry - YAML Command Orchestrator"
+icon: "🚀"
+description: "CI/CD for humans - Transform YAML into shell commands. No execution, just generation."
+
+# Registry location
+registry: "docs/registry.json"
+item_type: library
+
+# Installation methods
+setup:
+  - name: uv
+    command: "uv tool install ry-tool"
+    default: true
+  - name: pipx
+    command: "pipx install ry-tool"
+  - name: pip
+    command: "pip install ry-tool"
+
+# Repository
+repo: "https://github.com/angelsen/ry-tool"
