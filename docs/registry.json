@@ -4,39 +4,61 @@
   "libraries": {
     "site-builder": {
       "files": [
+        "CHANGELOG.md",
+        "README.md",
         "lib/build.py",
         "meta.yaml",
         "site-builder.yaml"
       ],
       "entry": "site-builder.yaml",
       "description": "Static site generator for project registries",
-      "version": "1.0.0",
+      "version": "0.1.0",
       "author": "angelsen"
+    },
+    "ry-dev": {
+      "files": [
+        "CHANGELOG.md",
+        "README.md",
+        "lib/version_bumper.py",
+        "lib/version_checker.py",
+        "meta.yaml",
+        "ry-dev.yaml"
+      ],
+      "entry": "ry-dev.yaml",
+      "description": "Version management and development tools for ry libraries",
+      "version": "0.1.0",
+      "author": "ry-tool"
     },
     "uv": {
       "files": [
+        "CHANGELOG.md",
+        "README.md",
         "lib/get_version_info.py",
         "meta.yaml",
         "uv.yaml"
       ],
       "entry": "uv.yaml",
       "description": "Enhanced uv operations with git integration",
-      "version": "1.0.0",
+      "version": "0.1.0",
       "author": "ry-tool"
     },
     "changelog": {
       "files": [
+        "CHANGELOG.md",
+        "README.md",
         "changelog.yaml",
         "lib/update_version.py",
         "meta.yaml"
       ],
       "entry": "changelog.yaml",
       "description": "Simple changelog management following Keep a Changelog format",
-      "version": "1.0.0",
+      "version": "0.1.0",
       "author": "ry-tool"
     },
     "git": {
       "files": [
+        "CHANGELOG.md",
+        "README.md",
         "git.yaml",
         "lib/strip_claude.py",
         "lib/token.py",
@@ -45,7 +67,7 @@
       ],
       "entry": "git.yaml",
       "description": "Enhanced git workflow with conventional commits",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": "Fredrik Angelsen"
     }
   }
