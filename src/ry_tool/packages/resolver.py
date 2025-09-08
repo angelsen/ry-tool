@@ -25,9 +25,9 @@ class LibraryResolver:
         Detect if a YAML file is part of a library and return its directory.
 
         Libraries can be in:
-        - ./libraries/name/name.yaml
-        - ~/.local/share/ry/libraries/name/name.yaml
-        - /usr/share/ry/libraries/name/name.yaml
+        - ./docs/libraries/name/name.yaml (development)
+        - ~/.local/share/ry/libraries/name/name.yaml (user installed)
+        - /usr/share/ry/libraries/name/name.yaml (system)
 
         Args:
             config_path: Path to YAML configuration file
@@ -70,7 +70,7 @@ class LibraryResolver:
         # Try to resolve as a library name
         # Resolution order:
         # 1. Current directory (./name.yaml)
-        # 2. Development libraries (./libraries/name/name.yaml)
+        # 2. Development libraries (./docs/libraries/name/name.yaml)
         # 3. User installed (~/.local/share/ry/libraries/name/name.yaml)
         # 4. System-wide (/usr/share/ry/libraries/name/name.yaml)
 
@@ -79,8 +79,8 @@ class LibraryResolver:
         if local_file.exists():
             return (local_file, args)
 
-        # Check development libraries (for ry-tool development)
-        dev_lib = Path("libraries") / name / f"{name}.yaml"
+        # Check development libraries in docs (for ry-tool development)
+        dev_lib = Path("docs/libraries") / name / f"{name}.yaml"
         if dev_lib.exists():
             return (dev_lib, args)
 

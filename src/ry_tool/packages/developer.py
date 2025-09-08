@@ -18,7 +18,7 @@ class PackageDeveloper:
         self.registry = Registry()
         self.project_root = Path(__file__).parent.parent.parent.parent
         self.docs_dir = self.project_root / "docs"
-        self.libraries_dir = self.project_root / "libraries"  # Libraries at root now
+        self.libraries_dir = self.docs_dir / "libraries"  # Libraries in docs now
 
     def new(self, name: str) -> bool:
         """
@@ -148,7 +148,7 @@ ry {name} test
         Returns:
             True if successful, False otherwise
         """
-        # First check in docs/libraries
+        # Check in docs/libraries (new location)
         yaml_path = self.libraries_dir / name / f"{name}.yaml"
 
         # If not found, check if it's a path

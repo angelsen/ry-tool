@@ -79,7 +79,7 @@ class PackageManager:
             shutil.rmtree(lib_dir)
         lib_dir.mkdir(parents=True)
 
-        # Check if we can copy from local development libraries
+        # Check if we can copy from local development libraries (now in docs)
         local_source = self.registry.libraries_dir / name
         if local_source.exists() and local_source.is_dir():
             # Copy from local development

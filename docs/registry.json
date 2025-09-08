@@ -27,8 +27,6 @@
     "changelog": {
       "files": [
         "changelog.yaml",
-        "lib/__pycache__/update_version.cpython-312.pyc",
-        "lib/__pycache__/update_version.cpython-313.pyc",
         "lib/update_version.py",
         "meta.yaml"
       ],
@@ -40,9 +38,6 @@
     "git": {
       "files": [
         "git.yaml",
-        "lib/__pycache__/strip_claude.cpython-312.pyc",
-        "lib/__pycache__/token.cpython-312.pyc",
-        "lib/__pycache__/validate_commit.cpython-312.pyc",
         "lib/strip_claude.py",
         "lib/token.py",
         "lib/validate_commit.py",

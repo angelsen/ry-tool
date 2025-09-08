@@ -25,14 +25,14 @@ class Registry:
             base_url: Base URL for the registry (GitHub Pages)
         """
         self.base_url = base_url or config.REGISTRY_URL
-        self.registry_url = f"{self.base_url}/docs/registry.json"
-        self.libraries_url = f"{self.base_url}/libraries"
+        self.registry_url = f"{self.base_url}/registry.json"  # docs is the root on GitHub Pages
+        self.libraries_url = f"{self.base_url}/libraries"     # will be served from docs/libraries
 
-        # Local paths - hybrid structure
+        # Local paths - all in docs now
         self.project_root = Path(__file__).parent.parent.parent.parent
         self.docs_dir = self.project_root / "docs"
-        self.libraries_dir = self.project_root / "libraries"  # Libraries at root
-        self.registry_file = self.docs_dir / "registry.json"  # Registry in docs
+        self.libraries_dir = self.docs_dir / "libraries"  # Libraries in docs now
+        self.registry_file = self.docs_dir / "registry.json"
 
     def fetch_remote(self) -> Optional[Dict]:
         """
@@ -125,12 +125,15 @@ class Registry:
         if not yaml_file.exists():
             return None
 
-        # Get all files in the library
+        # Get all files in the library (only include needed files)
         files = []
+        include_extensions = {'.yaml', '.py', '.md', '.txt', '.json'}
         for item in lib_dir.rglob("*"):
             if item.is_file():
-                rel_path = item.relative_to(lib_dir)
-                files.append(str(rel_path))
+                # Only include files with allowed extensions
+                if item.suffix in include_extensions:
+                    rel_path = item.relative_to(lib_dir)
+                    files.append(str(rel_path))
 
         # Look for meta.yaml for additional info
         meta = {}
