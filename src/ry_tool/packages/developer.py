@@ -46,11 +46,14 @@ class PackageDeveloper:
 match:
   # Define your command patterns here
   test:
-    - shell: echo "Running {name} test"
+    - shell: 'echo "SUCCESS: {name} library is working!"'
+  
+  version:
+    - shell: 'echo "{name} version 0.1.0"'
   
   default:
-    - shell: echo "Usage: ry {name} [command]"
-    - shell: echo "Available commands: test"
+    - shell: 'echo "Usage: ry {name} <command>"'
+    - shell: 'echo "Commands: test, version"'
 """
 
         yaml_file = lib_dir / f"{name}.yaml"
@@ -70,6 +73,39 @@ version: "0.1.0"
         lib_subdir = lib_dir / "lib"
         lib_subdir.mkdir()
 
+        # Create CHANGELOG.md
+        changelog_template = f"""# Changelog - {name}
+
+All notable changes to the {name} library will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.1.0] - {Path.home().name}
+
+### Added
+- Initial release of {name} library
+- Basic command structure with test and version commands
+"""
+
+        import datetime
+        changelog_template = changelog_template.replace(
+            f"] - {Path.home().name}", 
+            f"] - {datetime.date.today()}"
+        )
+        changelog_file = lib_dir / "CHANGELOG.md"
+        changelog_file.write_text(changelog_template)
+
         # Create a README
         readme_template = f"""# {name}
 
@@ -84,12 +120,21 @@ ry --install {name}
 ## Usage
 
 ```bash
-ry {name} test
+ry {name} test        # Test the library
+ry {name} version     # Show version
+```
+
+## Development
+
+To test locally:
+```bash
+ry docs/libraries/{name}/{name}.yaml test
 ```
 
 ## Commands
 
-- `test`: Run test command
+- `test`: Verify library is working
+- `version`: Display library version
 """
 
         readme_file = lib_dir / "README.md"

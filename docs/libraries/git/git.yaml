@@ -51,8 +51,8 @@ match:
         import subprocess
         import os
         
-        # Get commit message from args (args.2 is the message after "commit -m")
-        msg = """{{args.2|}}"""
+        # Get commit message from args (now args.0 after "commit -m" is consumed)
+        msg = """{{args.0|}}"""
         if not msg:
             print("ERROR: No commit message provided", file=sys.stderr)
             print("  Usage: git commit -m 'message'", file=sys.stderr)
@@ -87,7 +87,7 @@ match:
       base64: false  # Disable encoding to allow variable expansion
   
   add:
-    - shell: "{{env.RY_GIT|/usr/bin/git}} add {{args.rest}}"
+    - shell: "{{env.RY_GIT|/usr/bin/git}} add {{args.all}}"
     - shell: |
         if [ -n "$({{env.RY_GIT|/usr/bin/git}} diff --staged --name-only)" ]; then
             echo "INFO: Files staged successfully" >&2
@@ -96,7 +96,7 @@ match:
         fi
   
   status:
-    - shell: "{{env.RY_GIT|/usr/bin/git}} status {{args.rest|}}"
+    - shell: "{{env.RY_GIT|/usr/bin/git}} status {{args.all|}}"
   
   push:
     # Check if on main/master
@@ -109,7 +109,7 @@ match:
             echo "    git push -u origin feature/name" >&2
             exit 1
         fi
-    - shell: "{{env.RY_GIT|/usr/bin/git}} push {{args.rest|}}"
+    - shell: "{{env.RY_GIT|/usr/bin/git}} push {{args.all|}}"
   
   # Pass through everything else
   default:

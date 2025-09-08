@@ -1,6 +1,6 @@
 # meta.yaml - Library metadata
 name: changelog
-version: 1.0.0
+version: 0.1.0
 description: Simple changelog management following Keep a Changelog format
 author: ry-tool
 

@@ -120,6 +120,7 @@ class CommandGenerator:
 
         # Find matching pattern
         matched = None
+        matched_pattern_length = 0
 
         # Sort patterns by length (longest first) to match more specific patterns first
         sorted_patterns = sorted(
@@ -140,20 +141,37 @@ class CommandGenerator:
                 match_args_list = list(match_args)
                 if match_args_list[: len(pattern_parts)] == pattern_parts:
                     matched = action
+                    matched_pattern_length = len(pattern_parts)
                     break
 
         # Use default if no match
         if matched is None:
             matched = patterns.get("default") or patterns.get("*")
+            matched_pattern_length = 0
 
         if matched is None:
             return ""
 
+        # Create new template processor with consumed args
+        # Remove the matched pattern parts from args
+        consumed_args = list(match_args)[matched_pattern_length:]
+        
+        # Store original processor and create new one with consumed args
+        original_processor = self.processor
+        if self.processor:
+            from .template import TemplateProcessor
+            self.processor = TemplateProcessor(consumed_args)
+
         # Process matched action
         if isinstance(matched, list):
-            return self._handle_steps(matched)
+            result = self._handle_steps(matched)
         else:
-            return self._handle_single(matched)
+            result = self._handle_single(matched)
+            
+        # Restore original processor
+        self.processor = original_processor
+        
+        return result
 
     def _handle_single(self, step: Any) -> str:
         """Handle a single step."""

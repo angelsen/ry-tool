@@ -47,7 +47,7 @@ match:
     # Manually update version in changelog (usually called by uv bump)
     - python: |
         import sys
-        version = "{{args.1|}}"
+        version = "{{args.0|}}"
         if not version:
             print("ERROR: Missing version argument", file=sys.stderr)
             print("  Usage: ry changelog update <version>", file=sys.stderr)

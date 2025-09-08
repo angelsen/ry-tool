@@ -24,12 +24,11 @@ class TemplateProcessor:
         for i, arg in enumerate(args):
             ctx[f"args.{i}"] = arg
 
-        if args:
-            ctx["args.all"] = " ".join(args)
-            ctx["args.first"] = args[0]
-            ctx["args.last"] = args[-1]
-            if len(args) > 1:
-                ctx["args.rest"] = " ".join(args[1:])
+        # Always provide these, even if empty
+        ctx["args.all"] = " ".join(args) if args else ""
+        ctx["args.first"] = args[0] if args else ""
+        ctx["args.last"] = args[-1] if args else ""
+        ctx["args.rest"] = " ".join(args[1:]) if len(args) > 1 else ""
 
         # Environment variables
         for key, value in os.environ.items():
