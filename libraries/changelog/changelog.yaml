@@ -40,8 +40,8 @@ match:
         template = textwrap.dedent(template).strip() + "\n"
         
         changelog.write_text(template)
-        print("Created CHANGELOG.md")
-        print("Edit the [Unreleased] section to track your changes")
+        print("SUCCESS: Created CHANGELOG.md")
+        print("INFO: Edit the [Unreleased] section to track your changes")
   
   update:
     # Manually update version in changelog (usually called by uv bump)
@@ -49,7 +49,8 @@ match:
         import sys
         version = "{{args.1|}}"
         if not version:
-            print("Usage: ry changelog.yaml update <version>", file=sys.stderr)
+            print("ERROR: Missing version argument", file=sys.stderr)
+            print("  Usage: ry changelog update <version>", file=sys.stderr)
             sys.exit(1)
     
     - python: |
@@ -68,11 +69,11 @@ match:
         
         if not changelog.exists():
             print("ERROR: No CHANGELOG.md found", file=sys.stderr)
-            print("  Run: ry changelog.yaml init", file=sys.stderr)
+            print("  Run: ry changelog init", file=sys.stderr)
             sys.exit(1)
         
         if update_changelog_version(changelog, version):
-            print(f"Updated CHANGELOG.md with version {version}")
+            print(f"SUCCESS: Updated CHANGELOG.md with version {version}")
         else:
             print(f"ERROR: Failed to update changelog", file=sys.stderr)
             print(f"  Make sure [Unreleased] section exists", file=sys.stderr)
@@ -84,20 +85,22 @@ match:
         if [ -f CHANGELOG.md ]; then
             cat CHANGELOG.md
         else
-            echo "No CHANGELOG.md found" >&2
-            echo "  Run: ry changelog.yaml init" >&2
+            echo "ERROR: No CHANGELOG.md found" >&2
+            echo "  Run: ry changelog init" >&2
             exit 1
         fi
   
   # Default: show help
   default:
     - shell: |
-        echo "Changelog management commands:" >&2
+        echo "Usage: ry changelog <command>" >&2
+        echo "" >&2
+        echo "Commands:" >&2
         echo "  init    - Create new CHANGELOG.md from template" >&2
         echo "  update  - Update version in changelog" >&2
         echo "  show    - Display current changelog" >&2
         echo "" >&2
-        echo "Usage:" >&2
-        echo "  ry changelog.yaml init" >&2
-        echo "  ry changelog.yaml update 1.2.3" >&2
-        echo "  ry changelog.yaml show" >&2
+        echo "Examples:" >&2
+        echo "  ry changelog init" >&2
+        echo "  ry changelog update 1.2.3" >&2
+        echo "  ry changelog show" >&2

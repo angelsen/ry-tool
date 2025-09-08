@@ -19,7 +19,7 @@ class RY:
     def __init__(self, config_path: Path, args: List[str]):
         """
         Initialize ry with a configuration path and arguments.
-        
+
         Args:
             config_path: Path to YAML configuration file
             args: Arguments to pass to the configuration
@@ -27,14 +27,12 @@ class RY:
         # Detect library directory if applicable
         resolver = LibraryResolver()
         library_dir = resolver.detect_library_dir(config_path)
-        
+
         # Create execution context
         self.context = ExecutionContext(
-            config_path=config_path,
-            args=args,
-            library_dir=library_dir
+            config_path=config_path, args=args, library_dir=library_dir
         )
-        
+
         self.config = self._load_config()
 
     def _load_config(self) -> dict:
@@ -57,7 +55,7 @@ class RY:
     def run(self) -> int:
         """
         Generate and output commands.
-        
+
         Returns:
             Exit code (0 for success)
         """
@@ -65,11 +63,7 @@ class RY:
         processor = TemplateProcessor(self.context.args)
 
         # Create generator with context
-        generator = CommandGenerator(
-            self.config, 
-            self.context,
-            processor
-        )
+        generator = CommandGenerator(self.config, self.context, processor)
 
         # Generate commands
         output = generator.generate()

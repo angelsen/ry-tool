@@ -9,7 +9,7 @@ match:
   init:
     - shell: |
         if [ -f "site.yaml" ]; then
-          echo "site.yaml already exists"
+          echo "ERROR: site.yaml already exists" >&2
           exit 1
         fi
         
@@ -56,34 +56,35 @@ match:
         repo: "https://github.com/angelsen/${PROJECT_NAME}"
         EOF
         
-        echo "✅ Created site.yaml - edit to customize"
+        echo "SUCCESS: Created site.yaml" >&2
+        echo "INFO: Edit site.yaml to customize your site" >&2
   
   build:
     - shell: |
         if [ ! -f "site.yaml" ]; then
-          echo "ERROR: site.yaml not found"
-          echo "Run: ry site-builder init"
+          echo "ERROR: site.yaml not found" >&2
+          echo "  Run: ry site-builder init" >&2
           exit 1
         fi
     # Use $RY_LIBRARY_DIR to reference library files
     - shell: python $RY_LIBRARY_DIR/lib/build.py
-    - shell: echo "✅ Generated docs/index.html"
+    - shell: echo "SUCCESS: Generated docs/index.html" >&2
   
   preview:
     - shell: |
         if [ ! -f "site.yaml" ]; then
-          echo "ERROR: site.yaml not found"
-          echo "Run: ry site-builder init"
+          echo "ERROR: site.yaml not found" >&2
+          echo "  Run: ry site-builder init" >&2
           exit 1
         fi
     - match: build
     - shell: |
         if command -v python3 >/dev/null; then
-          echo "📡 Serving at http://localhost:8000"
-          echo "Press Ctrl+C to stop"
+          echo "INFO: Serving at http://localhost:8000" >&2
+          echo "INFO: Press Ctrl+C to stop" >&2
           cd docs && python3 -m http.server
         else
-          echo "Python3 not found - cannot start preview server"
+          echo "ERROR: Python3 not found - cannot start preview server" >&2
           exit 1
         fi
   
@@ -91,17 +92,17 @@ match:
     - shell: |
         if [ -f "docs/index.html" ]; then
           rm docs/index.html
-          echo "✅ Removed docs/index.html"
+          echo "SUCCESS: Removed docs/index.html" >&2
         else
-          echo "No index.html to clean"
+          echo "INFO: No index.html to clean" >&2
         fi
   
   default:
     - shell: |
-        echo "Usage: ry site-builder <command>"
-        echo ""
-        echo "Commands:"
-        echo "  init     Create site.yaml configuration"
-        echo "  build    Generate docs/index.html from registry"
-        echo "  preview  Build and serve locally at :8000"
-        echo "  clean    Remove generated files"
+        echo "Usage: ry site-builder <command>" >&2
+        echo "" >&2
+        echo "Commands:" >&2
+        echo "  init     - Create site.yaml configuration" >&2
+        echo "  build    - Generate docs/index.html from registry" >&2
+        echo "  preview  - Build and serve locally at :8000" >&2
+        echo "  clean    - Remove generated files" >&2

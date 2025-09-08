@@ -3,206 +3,157 @@
 
 match:
   "version --bump":
-    # Enhanced bump workflow
+    # Bump workflow - version will definitely change
     - shell: |
-        # Check git is clean
-        if [ -n "$(/usr/bin/git status --porcelain)" ]; then
+        # Pre-flight checks
+        if [ -n "$({{env.RY_GIT|/usr/bin/git}} status --porcelain)" ]; then
             echo "ERROR: Working directory not clean" >&2
             echo "  Commit or stash changes first" >&2
             exit 1
         fi
         
-        # Check changelog exists
         if [ ! -f "CHANGELOG.md" ]; then
             echo "ERROR: No CHANGELOG.md found" >&2
-            echo "  Run: ry libraries/changelog/changelog.yaml init" >&2
+            echo "  Run: ry changelog init" >&2
             echo "  Then update the [Unreleased] section with your changes" >&2
             exit 1
         fi
     
-    # Get old version before bump
-    - shell: /usr/bin/uv version --output-format json
+    # Get current state
+    - shell: "{{env.RY_UV|/usr/bin/uv}} version --output-format json"
       capture: OLD_INFO
-    - python: |
-        import json
-        import os
-        info = json.loads(os.environ['OLD_INFO'])
-        print(info['version'])
-      capture: OLD_VERSION
-    - python: |
-        import json
-        import os
-        info = json.loads(os.environ['OLD_INFO'])
-        print(info['package_name'])
-      capture: PACKAGE_NAME
     
     # Execute the bump
-    - shell: /usr/bin/uv {{args.all}}
+    - shell: "{{env.RY_UV|/usr/bin/uv}} {{args.all}}"
       capture: UV_OUTPUT
     
-    # Get new version after bump
-    - shell: /usr/bin/uv version --output-format json
+    # Get new state
+    - shell: "{{env.RY_UV|/usr/bin/uv}} version --output-format json"
       capture: NEW_INFO
-    - python: |
-        import json
-        import os
-        info = json.loads(os.environ['NEW_INFO'])
-        print(info['version'])
-      capture: NEW_VERSION
     
-    # Update changelog if it exists
+    # Process the change
     - shell: |
-        if [ -f "CHANGELOG.md" ] && [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
-            # Use ry to update changelog properly
-            if command -v ry >/dev/null; then
-                ry changelog update "$NEW_VERSION" 2>/dev/null || true
-            fi
+        # Extract version info
+        OLD_VERSION=$(echo "$OLD_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
+        NEW_VERSION=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
+        PACKAGE_NAME=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['package_name'])")
+        
+        # Update changelog if ry is available
+        if [ -f "CHANGELOG.md" ] && command -v ry >/dev/null; then
+            ry changelog update "$NEW_VERSION" 2>/dev/null || true
         fi
-    
-    # Sync dependencies to update lockfile
-    - shell: /usr/bin/uv sync --quiet
-    
-    # Atomic git operations
-    - shell: |
-        NEW_VERSION="${NEW_VERSION}"
-        OLD_VERSION="${OLD_VERSION}"
         
-        # Stage all changes
-        /usr/bin/git add -A
+        # Sync dependencies
+        echo "INFO: Syncing dependencies..." >&2
+        {{env.RY_UV|/usr/bin/uv}} sync --quiet
         
-        # Commit with package name
-        /usr/bin/git commit -m "chore(${PACKAGE_NAME}): bump version from ${OLD_VERSION} to ${NEW_VERSION}"
+        # Git operations
+        {{env.RY_GIT|/usr/bin/git}} add -A
+        {{env.RY_GIT|/usr/bin/git}} commit -m "chore(${PACKAGE_NAME}): bump version from ${OLD_VERSION} to ${NEW_VERSION}"
         
         # Tag with package name
         TAG_NAME="${PACKAGE_NAME}-v${NEW_VERSION}"
-        /usr/bin/git tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
+        {{env.RY_GIT|/usr/bin/git}} tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
         
-        echo "✓ Bumped ${PACKAGE_NAME}: ${OLD_VERSION} → ${NEW_VERSION}" >&2
-        echo "✓ Created tag: ${TAG_NAME}" >&2
+        # Success feedback
+        echo "SUCCESS: Bumped ${PACKAGE_NAME}: ${OLD_VERSION} → ${NEW_VERSION}" >&2
+        echo "SUCCESS: Created tag: ${TAG_NAME}" >&2
         echo "" >&2
         echo "Next steps:" >&2
         echo "  git push origin main" >&2
         echo "  git push origin ${TAG_NAME}" >&2
-    
-    # Show uv output
-    - shell: echo "$UV_OUTPUT"
+        
+        # Show original uv output
+        echo "$UV_OUTPUT"
 
   version:
-    # Handle all version commands
+    # Handle both "version" (show) and "version X.Y.Z" (set)
     - shell: |
-        # If no version argument, just show current version and exit
-        if [ -z "{{args.rest|}}" ]; then
-            /usr/bin/uv version
-            exit 0
-        fi
-        
-        # Otherwise continue with version setting workflow
-        # Check git is clean
-        if [ -n "$(/usr/bin/git status --porcelain)" ]; then
-            echo "ERROR: Working directory not clean" >&2
-            echo "  Commit or stash changes first" >&2
-            exit 1
-        fi
-        
-        # Check changelog exists
-        if [ ! -f "CHANGELOG.md" ]; then
-            echo "ERROR: No CHANGELOG.md found" >&2
-            echo "  Run: ry libraries/changelog/changelog.yaml init" >&2
-            echo "  Then update the [Unreleased] section with your changes" >&2
-            exit 1
-        fi
-    
-    # Get old version before setting
-    - shell: /usr/bin/uv version --output-format json
-      capture: OLD_INFO
-    - python: |
-        import json
-        import os
-        info = json.loads(os.environ['OLD_INFO'])
-        print(info['version'])
-      capture: OLD_VERSION
-    - python: |
-        import json
-        import os
-        info = json.loads(os.environ['OLD_INFO'])
-        print(info['package_name'])
-      capture: PACKAGE_NAME
-    
-    # Set the new version
-    - shell: /usr/bin/uv {{args.all}}
-      capture: UV_OUTPUT
-    
-    # Get new version after setting
-    - shell: /usr/bin/uv version --output-format json
-      capture: NEW_INFO
-    - python: |
-        import json
-        import os
-        info = json.loads(os.environ['NEW_INFO'])
-        print(info['version'])
-      capture: NEW_VERSION
-    
-    # Update changelog
-    - shell: |
-        if [ -f "CHANGELOG.md" ] && [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
-            # Use ry to update changelog properly
-            if command -v ry >/dev/null; then
+        # Check if we're setting a version (have additional args)
+        if [ $# -gt 1 ]; then
+            # Setting version - need git workflow
+            
+            # Pre-flight checks
+            if [ -n "$({{env.RY_GIT|/usr/bin/git}} status --porcelain)" ]; then
+                echo "ERROR: Working directory not clean" >&2
+                echo "  Commit or stash changes first" >&2
+                exit 1
+            fi
+            
+            # Get current version
+            OLD_INFO=$({{env.RY_UV|/usr/bin/uv}} version --output-format json)
+            OLD_VERSION=$(echo "$OLD_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
+            
+            # Set new version
+            UV_OUTPUT=$({{env.RY_UV|/usr/bin/uv}} {{args.all}})
+            
+            # Get new version
+            NEW_INFO=$({{env.RY_UV|/usr/bin/uv}} version --output-format json)
+            NEW_VERSION=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
+            PACKAGE_NAME=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['package_name'])")
+            
+            # If version didn't change, just show output
+            if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
+                echo "$UV_OUTPUT"
+                exit 0
+            fi
+            
+            # Version changed - do git workflow
+            echo "INFO: Version changed from ${OLD_VERSION} to ${NEW_VERSION}" >&2
+            
+            # Update changelog if available
+            if [ -f "CHANGELOG.md" ] && command -v ry >/dev/null; then
+                echo "INFO: Updating CHANGELOG.md..." >&2
                 ry changelog update "$NEW_VERSION" 2>/dev/null || true
             fi
-        fi
-    
-    # Sync dependencies to update lockfile
-    - shell: /usr/bin/uv sync --quiet
-    
-    # Atomic git operations
-    - shell: |
-        NEW_VERSION="${NEW_VERSION}"
-        OLD_VERSION="${OLD_VERSION}"
-        
-        # Stage all changes
-        /usr/bin/git add -A
-        
-        # Tag with package name
-        TAG_NAME="${PACKAGE_NAME}-v${NEW_VERSION}"
-        
-        # Determine if this is initial version or version change
-        if [ "$OLD_VERSION" = "0.0.0" ] || [ -z "$(/usr/bin/git tag -l)" ]; then
-            # Initial version
-            /usr/bin/git commit -m "chore(${PACKAGE_NAME}): initial version ${NEW_VERSION}"
+            
+            # Sync dependencies
+            echo "INFO: Syncing dependencies..." >&2
+            {{env.RY_UV|/usr/bin/uv}} sync --quiet
+            
+            # Git operations
+            {{env.RY_GIT|/usr/bin/git}} add -A
+            
+            # Appropriate commit message
+            if [ "$OLD_VERSION" = "0.0.0" ] || [ -z "$({{env.RY_GIT|/usr/bin/git}} tag -l)" ]; then
+                {{env.RY_GIT|/usr/bin/git}} commit -m "chore(${PACKAGE_NAME}): initial version ${NEW_VERSION}"
+            else
+                {{env.RY_GIT|/usr/bin/git}} commit -m "chore(${PACKAGE_NAME}): set version from ${OLD_VERSION} to ${NEW_VERSION}"
+            fi
+            
+            # Tag with package name
+            TAG_NAME="${PACKAGE_NAME}-v${NEW_VERSION}"
+            {{env.RY_GIT|/usr/bin/git}} tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
+            
+            echo "SUCCESS: Set ${PACKAGE_NAME}: ${OLD_VERSION} → ${NEW_VERSION}" >&2
+            echo "SUCCESS: Created tag: ${TAG_NAME}" >&2
+            echo "" >&2
+            echo "Next steps:" >&2
+            echo "  git push origin main" >&2
+            echo "  git push origin ${TAG_NAME}" >&2
+            
+            # Show original output
+            echo "$UV_OUTPUT"
         else
-            # Version change
-            /usr/bin/git commit -m "chore(${PACKAGE_NAME}): set version from ${OLD_VERSION} to ${NEW_VERSION}"
+            # Just showing version
+            {{env.RY_UV|/usr/bin/uv}} version {{args.rest|}}
         fi
-        
-        # Tag
-        /usr/bin/git tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
-        
-        echo "✓ Set ${PACKAGE_NAME}: ${OLD_VERSION} → ${NEW_VERSION}" >&2
-        echo "✓ Created tag: ${TAG_NAME}" >&2
-        echo "" >&2
-        echo "Next steps:" >&2
-        echo "  git push origin main" >&2
-        echo "  git push origin ${TAG_NAME}" >&2
-    
-    # Show uv output
-    - shell: echo "$UV_OUTPUT"
   
   publish:
-    # Enhanced publish with pre-flight checks
+    # Pre-flight check for tagged version
     - python: |
         import sys
         import subprocess
-        from pathlib import Path
+        import json
         
-        # Check if current version is tagged
+        # Get current version info
         result = subprocess.run(
-            ["/usr/bin/uv", "version", "--output-format", "json"],
+            ["{{env.RY_UV|/usr/bin/uv}}", "version", "--output-format", "json"],
             capture_output=True,
             text=True
         )
         
         if result.returncode == 0:
-            import json
             data = json.loads(result.stdout)
             version = data['version']
             package = data['package_name']
@@ -210,7 +161,7 @@ match:
             
             # Check if tag exists
             tag_check = subprocess.run(
-                ["/usr/bin/git", "tag", "-l", tag],
+                ["{{env.RY_GIT|/usr/bin/git}}", "tag", "-l", tag],
                 capture_output=True,
                 text=True
             )
@@ -218,25 +169,25 @@ match:
             if not tag_check.stdout.strip():
                 print(f"ERROR: Version {version} is not tagged", file=sys.stderr)
                 print(f"  Expected tag: {tag}", file=sys.stderr)
-                print(f"  Run: uv version --bump patch", file=sys.stderr)
+                print(f"  Run: ry uv version --bump patch", file=sys.stderr)
                 sys.exit(1)
             
-            print(f"✓ Version {version} is tagged", file=sys.stderr)
+            print(f"INFO: Version {version} is properly tagged", file=sys.stderr)
     
     # Run the actual publish
-    - shell: /usr/bin/uv {{args.all}}
+    - shell: "{{env.RY_UV|/usr/bin/uv}} {{args.all}}"
   
   build:
-    # Clean dist directory before building
+    # Clean and build
     - shell: |
         if [ -d "dist" ]; then
-            echo "Cleaning dist/ directory..." >&2
+            echo "INFO: Cleaning dist/ directory..." >&2
             rm -rf dist/*
         fi
-    
-    # Run the build
-    - shell: /usr/bin/uv {{args.all}}
+        
+        echo "INFO: Building package..." >&2
+        {{env.RY_UV|/usr/bin/uv}} {{args.all}}
   
   # Pass through all other commands unchanged
   default:
-    - shell: /usr/bin/uv {{args.all}}
+    - shell: "{{env.RY_UV|/usr/bin/uv}} {{args.all}}"

@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Centralized configuration system (`src/ry_tool/config.py`)
+- Custom exception hierarchy (`src/ry_tool/exceptions.py`) 
+- Unified base64 encoding method in base executor
+- Local library installation support in package manager
+
+### Changed
+- All executors now use shared base64 encoding pipeline
+- Registry operations unified with fallback to local
+- Loader tags now raise exceptions instead of silent failures
+- Template processor raises exceptions instead of sys.exit
+
+### Fixed
+- YAML quoting issues in library files
+- Normalizer script path execution bug
+- Interactive command handling in guard wrappers
+
+## [0.3.0] - 2025-09-07
+
+### Added
 - Complete package management system (`--install`, `--update`, `--uninstall`, `--list`, `--search`)
 - Developer tools (`--dev-check`, `--dev-new`, `--dev-registry`, `--dev-publish`)
 - `libraries/site-builder/` - Static site generator for GitHub Pages documentation

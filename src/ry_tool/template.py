@@ -5,8 +5,8 @@ Handles {{var|default}} substitution in strings after YAML parsing.
 
 import re
 import os
-import sys
 from typing import Any, Dict, List
+from .exceptions import TemplateError
 
 
 class TemplateProcessor:
@@ -74,7 +74,6 @@ class TemplateProcessor:
                 return parts[1]  # Don't strip - preserve user's exact default
 
             # No default provided - fail
-            print(f"FAIL: template variable '{var_name}' not found", file=sys.stderr)
-            sys.exit(1)
+            raise TemplateError(f"Template variable '{var_name}' not found")
 
         return re.sub(pattern, replacer, text)

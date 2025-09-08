@@ -14,7 +14,12 @@ app = CLI(name="ry", description="YAML command orchestrator with package managem
 
 
 # Package management commands
-@app.command("--install", help="Install a library from registry", requires_arg=True, arg_name="library")
+@app.command(
+    "--install",
+    help="Install a library from registry",
+    requires_arg=True,
+    arg_name="library",
+)
 def install(library: str):
     """Install a library from the registry."""
     manager = PackageManager()
@@ -30,7 +35,12 @@ def update(library: str = None):
     return manager.update()
 
 
-@app.command("--uninstall", help="Remove an installed library", requires_arg=True, arg_name="library")
+@app.command(
+    "--uninstall",
+    help="Remove an installed library",
+    requires_arg=True,
+    arg_name="library",
+)
 def uninstall(library: str):
     """Uninstall a library."""
     manager = PackageManager()
@@ -73,7 +83,12 @@ def search(query: str = ""):
 
 
 # Developer commands
-@app.command("--dev-new", help="Create new library template", requires_arg=True, arg_name="library")
+@app.command(
+    "--dev-new",
+    help="Create new library template",
+    requires_arg=True,
+    arg_name="library",
+)
 def dev_new(library: str):
     """Create a new library template."""
     developer = PackageDeveloper()
@@ -87,7 +102,9 @@ def dev_check():
     return developer.check()
 
 
-@app.command("--dev-test", help="Test a library locally", requires_arg=True, arg_name="library")
+@app.command(
+    "--dev-test", help="Test a library locally", requires_arg=True, arg_name="library"
+)
 def dev_test(library: str, *args):
     """Test a library."""
     developer = PackageDeveloper()
@@ -113,7 +130,7 @@ def dev_publish():
 def execute_library(first_arg: str, *args):
     """Execute a library or YAML file."""
     # Resolve library to YAML path
-    if first_arg.endswith(".yaml"):
+    if Path(first_arg).suffix == ".yaml":
         # Direct YAML file
         config_path = Path(first_arg)
         if not config_path.exists():
@@ -123,14 +140,14 @@ def execute_library(first_arg: str, *args):
         # Try to resolve as library name
         resolver = LibraryResolver()
         result = resolver.resolve(first_arg, list(args))
-        
+
         if result:
             config_path, remaining_args = result
         else:
             print(f"Library '{first_arg}' not found")
             print(f"Try: ry --install {first_arg}")
             return False
-    
+
     # Execute the library/YAML file
     ry = RY(config_path, remaining_args)
     return ry.run()

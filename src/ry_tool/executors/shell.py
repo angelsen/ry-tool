@@ -3,9 +3,9 @@ Shell executor - generates shell execution commands.
 Single responsibility: convert shell script to shell command.
 """
 
-import shlex
 from typing import Dict, Any
 from .base import Executor
+from ..config import config
 
 
 class ShellExecutor(Executor):
@@ -14,16 +14,17 @@ class ShellExecutor(Executor):
     name = "shell"
     aliases = ("sh", "bash", "zsh")
 
-    def compile(self, script: str, config: Dict[str, Any] | None = None) -> str:
+    def compile(self, script: str, cfg: Dict[str, Any] | None = None) -> str:
         """Convert shell script to shell command."""
-        config = config or {}
+        cfg = cfg or {}
 
-        # Determine shell
-        shell = config.get("shell", "sh")
-
-        # Single line commands can run directly
-        if "\n" not in script and not any(c in script for c in ["'", '"', "$", "`"]):
+        # Check if base64 encoding should be used (default: true for safety)
+        use_base64 = cfg.get("base64", True)
+        
+        if use_base64:
+            shell = cfg.get("shell", config.SHELL)
+            # Use base64 encoding to eliminate quoting issues
+            return self.encode_script(script, shell)
+        else:
+            # Direct execution without encoding (needed for variable expansion)
             return script
-
-        # Complex commands: use -c with proper escaping
-        return f"{shell} -c {shlex.quote(script)}"

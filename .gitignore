@@ -11,3 +11,7 @@ wheels/
 
 # Archive directories
 _archive/
+
+# Development/Session files
+HANDOFF.md
+ISSUES.md

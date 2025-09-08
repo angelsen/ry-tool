@@ -4,6 +4,7 @@ Single responsibility: coordinate the transformation pipeline.
 """
 
 from typing import Any, Dict, List
+from pathlib import Path
 from .pipeline import PipelineContext, PipeMode
 from .normalizer import Normalizer
 from .executors import registry
@@ -13,17 +14,19 @@ from .context import ExecutionContext
 class CommandGenerator:
     """Orchestrate command generation from YAML config."""
 
-    def __init__(self, config: Dict[str, Any], context: ExecutionContext, processor=None):
+    def __init__(
+        self, config: Dict[str, Any], context: ExecutionContext, processor=None
+    ):
         self.config = config
         self.context = context
         self.processor = processor
-        self.normalizer = Normalizer()
+        self.normalizer = Normalizer(context.library_dir)
 
     def generate(self) -> str:
         """Generate shell commands from config."""
         # Get environment exports from context
         env_commands = self.context.get_env_exports()
-        
+
         # Add env section from config if present
         if "env" in self.config:
             for key, value in self.config["env"].items():
@@ -90,34 +93,54 @@ class CommandGenerator:
         context = PipelineContext(steps, PipeMode.SEQUENCE)
         return self._process_steps(context)
 
+    def _get_match_args(self) -> List[str]:
+        """Get arguments for pattern matching, excluding YAML file path."""
+        if not self.context.args:
+            return []
+
+        # Skip first arg if it's a YAML file path
+        first_arg = self.context.args[0]
+        if Path(first_arg).suffix == ".yaml":
+            return self.context.args[1:]
+
+        # Also check if first arg is the config path (for library resolution)
+        try:
+            if Path(first_arg).resolve() == self.context.config_path.resolve():
+                return self.context.args[1:]
+        except (OSError, ValueError):
+            # Path resolution might fail for non-existent paths
+            pass
+
+        return self.context.args
+
     def _handle_match(self, patterns: Dict[str, Any]) -> str:
         """Handle pattern matching."""
+        # Get clean args without YAML file path
+        match_args = self._get_match_args()
+
         # Find matching pattern
         matched = None
 
         # Sort patterns by length (longest first) to match more specific patterns first
-        sorted_patterns = sorted(patterns.items(), 
-                                key=lambda x: len(x[0].split()), 
-                                reverse=True)
-        
+        sorted_patterns = sorted(
+            patterns.items(), key=lambda x: len(x[0].split()), reverse=True
+        )
+
         for pattern, action in sorted_patterns:
             if pattern in ["default", "*"]:
                 continue
 
+            # Split pattern into parts
+            pattern_parts = pattern.split()
+
             # Check if pattern matches arguments
-            if self.context.args:
-                if " " in pattern:
-                    # Multi-word pattern: split and check if args starts with it
-                    pattern_parts = pattern.split()
-                    if len(self.context.args) >= len(pattern_parts):
-                        if self.context.args[:len(pattern_parts)] == pattern_parts:
-                            matched = action
-                            break
-                else:
-                    # Single word pattern: original behavior
-                    if pattern == self.context.args[0]:
-                        matched = action
-                        break
+            if len(match_args) >= len(pattern_parts):
+                # Check if args start with pattern parts
+                # Convert both to lists for comparison
+                match_args_list = list(match_args)
+                if match_args_list[: len(pattern_parts)] == pattern_parts:
+                    matched = action
+                    break
 
         # Use default if no match
         if matched is None:

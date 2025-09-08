@@ -2,27 +2,25 @@
 # Usage: ry libraries/git/git.yaml <command> [args...]
 
 match:
-  diff:
-    # Show diff and generate token if --staged
-    - shell: /usr/bin/git diff {{args.rest|--staged}}
+  "diff --stat --staged":
+    # Show summary of staged changes and generate review token
+    - shell: "{{env.RY_GIT|/usr/bin/git}} diff --stat --staged"
     - python: |
         import sys
         import pathlib
+        import os
         
-        # Only generate token for staged diffs
-        args = "{{args.rest|--staged}}"
-        if "--staged" in args or "--cached" in args:
-            import os
-            lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
-            sys.path.insert(0, str(lib_path))
-            from token import get_current_token
-            
-            token, expires = get_current_token()
-            if token:
-                print(f"\nREVIEW_TOKEN={token}", file=sys.stderr)
-                print(f"# Expires in {expires} seconds", file=sys.stderr)
+        # Generate token for staged changes
+        lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
+        sys.path.insert(0, str(lib_path))
+        from token import get_current_token
+        
+        token, expires = get_current_token()
+        if token:
+            print(f"\nREVIEW_TOKEN={token}", file=sys.stderr)
+            print(f"# Expires in {expires} seconds", file=sys.stderr)
   
-  commit:
+  "commit -m":
     # Check review token - use !env to get it at YAML parse time
     - python: |
         import sys
@@ -33,9 +31,9 @@ match:
         token = "{{env.REVIEW_TOKEN|}}"
         
         if not token:
-            print("FAIL: review staged changes first", file=sys.stderr)
-            print("  Run: ry git.yaml diff --staged", file=sys.stderr) 
-            print("  Then: REVIEW_TOKEN=<token> ry git.yaml commit 'message'", file=sys.stderr)
+            print("ERROR: Review staged changes first", file=sys.stderr)
+            print("  Run: git diff --stat --staged", file=sys.stderr) 
+            print("  Then: REVIEW_TOKEN=<token> git commit -m 'message'", file=sys.stderr)
             sys.exit(1)
         
         lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
@@ -43,8 +41,8 @@ match:
         from token import verify_token
         
         if not verify_token(token):
-            print("FAIL: invalid or expired token", file=sys.stderr)
-            print("  Run: ry git.yaml diff --staged (get fresh token)", file=sys.stderr)
+            print("ERROR: Invalid or expired token", file=sys.stderr)
+            print("  Run: git diff --stat --staged", file=sys.stderr)
             sys.exit(1)
     
     # Validate and clean commit message
@@ -53,11 +51,11 @@ match:
         import subprocess
         import os
         
-        # Get commit message from args
-        msg = "{{args.1|}}"
+        # Get commit message from args (args.2 is the message after "commit -m")
+        msg = "{{args.2|}}"
         if not msg:
-            print("FAIL: no commit message provided", file=sys.stderr)
-            print("  Usage: ry git.yaml commit 'message'", file=sys.stderr)
+            print("ERROR: No commit message provided", file=sys.stderr)
+            print("  Usage: git commit -m 'message'", file=sys.stderr)
             sys.exit(1)
         
         # Import our validators
@@ -70,12 +68,12 @@ match:
         # Clean the message
         cleaned = strip_signatures(msg)
         if cleaned != msg:
-            print("WARN: removed AI signatures from commit message", file=sys.stderr)
+            print("WARNING: Removed AI signatures from commit message", file=sys.stderr)
         
         # Validate format
         is_valid, error = validate_conventional(cleaned)
         if not is_valid:
-            print(f"FAIL: {error}", file=sys.stderr)
+            print(f"ERROR: {error}", file=sys.stderr)
             print("  Example: feat: add new feature", file=sys.stderr)
             print("  Example: fix(api): handle null response", file=sys.stderr)
             sys.exit(1)
@@ -85,30 +83,33 @@ match:
       capture: CLEAN_MSG
     
     # Commit with cleaned message
-    - shell: /usr/bin/git commit -m "$CLEAN_MSG"
+    - shell: '{{env.RY_GIT|/usr/bin/git}} commit -m "$CLEAN_MSG"'
+      base64: false  # Disable encoding to allow variable expansion
   
   add:
-    - shell: /usr/bin/git add {{args.rest}}
+    - shell: "{{env.RY_GIT|/usr/bin/git}} add {{args.rest}}"
     - shell: |
-        if [ -n "$(/usr/bin/git diff --staged --name-only)" ]; then
-            echo "Files staged. Next: ry git.yaml commit 'message'" >&2
+        if [ -n "$({{env.RY_GIT|/usr/bin/git}} diff --staged --name-only)" ]; then
+            echo "INFO: Files staged" >&2
+            echo "  Next: ry git commit -m 'message'" >&2
         fi
   
   status:
-    - shell: /usr/bin/git status {{args.rest|}}
+    - shell: "{{env.RY_GIT|/usr/bin/git}} status {{args.rest|}}"
   
   push:
     # Check if on main/master
     - shell: |
-        BRANCH=$(/usr/bin/git branch --show-current)
+        BRANCH=$({{env.RY_GIT|/usr/bin/git}} branch --show-current)
         if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
-            echo "FAIL: direct push to $BRANCH blocked" >&2
-            echo "  Run: git checkout -b feature/name" >&2
-            echo "  Run: git push -u origin feature/name" >&2
+            echo "ERROR: Direct push to $BRANCH blocked" >&2
+            echo "  Create a feature branch instead:" >&2
+            echo "    git checkout -b feature/name" >&2
+            echo "    git push -u origin feature/name" >&2
             exit 1
         fi
-    - shell: /usr/bin/git push {{args.rest|}}
+    - shell: "{{env.RY_GIT|/usr/bin/git}} push {{args.rest|}}"
   
   # Pass through everything else
   default:
-    - shell: /usr/bin/git {{args.all}}
+    - shell: "{{env.RY_GIT|/usr/bin/git}} {{args.all}}"

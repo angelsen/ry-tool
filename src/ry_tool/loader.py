@@ -9,6 +9,7 @@ import subprocess
 import json
 from pathlib import Path
 from typing import Any
+from .exceptions import LoaderError
 
 
 class RyLoader(yaml.SafeLoader):
@@ -22,28 +23,28 @@ class RyLoader(yaml.SafeLoader):
 def resolve_path(loader: RyLoader, path_str: str) -> Path:
     """
     Resolve a path relative to the YAML file location.
-    
+
     If the path is absolute, return it as-is.
     If relative, resolve it relative to the YAML file's directory.
-    
+
     Args:
         loader: The RyLoader instance
         path_str: Path string to resolve
-        
+
     Returns:
         Resolved Path object
     """
     path = Path(path_str)
-    
+
     # If already absolute, return as-is
     if path.is_absolute():
         return path
-    
+
     # If loader has a name (YAML file path), resolve relative to it
     if hasattr(loader, "name") and loader.name:
         yaml_dir = Path(loader.name).parent
         return yaml_dir / path_str
-    
+
     # Fallback to path as-is (relative to CWD)
     return path
 
@@ -61,9 +62,13 @@ def construct_shell(loader: RyLoader, node: yaml.ScalarNode) -> str:
         result = subprocess.run(
             cmd, shell=True, capture_output=True, text=True, timeout=5
         )
+        if result.returncode != 0:
+            raise LoaderError(f"Shell command failed: {cmd}\n{result.stderr}")
         return result.stdout.strip()
-    except Exception:
-        return ""
+    except subprocess.TimeoutExpired:
+        raise LoaderError(f"Shell command timed out: {cmd}")
+    except Exception as e:
+        raise LoaderError(f"Shell command error: {e}")
 
 
 def construct_if(loader: RyLoader, node: yaml.MappingNode) -> Any:
@@ -102,15 +107,18 @@ def construct_if(loader: RyLoader, node: yaml.MappingNode) -> Any:
 def construct_include(loader: RyLoader, node: yaml.ScalarNode) -> Any:
     """Include another YAML file: !include common.yaml."""
     filename = loader.construct_scalar(node)
-    
+
     # Use utility to resolve path
     include_path = resolve_path(loader, filename)
 
-    if include_path.exists():
+    if not include_path.exists():
+        raise LoaderError(f"Include file not found: {filename}")
+
+    try:
         with open(include_path) as f:
             return yaml.load(f, Loader=RyLoader)
-
-    return {}
+    except Exception as e:
+        raise LoaderError(f"Failed to include {filename}: {e}")
 
 
 def construct_json(loader: RyLoader, node: yaml.ScalarNode) -> Any:
@@ -120,16 +128,22 @@ def construct_json(loader: RyLoader, node: yaml.ScalarNode) -> Any:
     # Check if it's a file or inline JSON
     if value.startswith("{") or value.startswith("["):
         # Inline JSON
-        return json.loads(value)
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError as e:
+            raise LoaderError(f"Invalid JSON: {e}")
     else:
         # File path - use utility to resolve
         json_path = resolve_path(loader, value)
-        
-        if json_path.exists():
+
+        if not json_path.exists():
+            raise LoaderError(f"JSON file not found: {value}")
+
+        try:
             with open(json_path) as f:
                 return json.load(f)
-
-    return {}
+        except Exception as e:
+            raise LoaderError(f"Failed to load JSON from {value}: {e}")
 
 
 def construct_eval(loader: RyLoader, node: yaml.ScalarNode) -> Any:
@@ -154,14 +168,14 @@ def construct_eval(loader: RyLoader, node: yaml.ScalarNode) -> Any:
 
     try:
         return eval(expr, {"__builtins__": {}}, safe_context)
-    except Exception:
-        return False
+    except Exception as e:
+        raise LoaderError(f"Eval failed for '{expr}': {e}")
 
 
 def construct_exists(loader: RyLoader, node: yaml.ScalarNode) -> bool:
     """Check if file/directory exists: !exists "path"."""
     path_str = loader.construct_scalar(node)
-    
+
     # Use utility to resolve path
     path = resolve_path(loader, path_str)
     return path.exists()
@@ -170,14 +184,17 @@ def construct_exists(loader: RyLoader, node: yaml.ScalarNode) -> bool:
 def construct_read(loader: RyLoader, node: yaml.ScalarNode) -> str:
     """Read file contents: !read "file.txt"."""
     filename = loader.construct_scalar(node)
-    
+
     # Use utility to resolve path
     file_path = resolve_path(loader, filename)
-    
+
+    if not file_path.exists():
+        raise LoaderError(f"File not found: {filename}")
+
     try:
         return file_path.read_text().strip()
-    except Exception:
-        return ""
+    except Exception as e:
+        raise LoaderError(f"Failed to read {filename}: {e}")
 
 
 # Register all constructors

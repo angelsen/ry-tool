@@ -1,6 +1,6 @@
 [project]
 name = "ry-tool"
-version = "0.3.0"
+version = "0.3.1"
 description = "Pure YAML command orchestrator - CI/CD for humans"
 readme = "README.md"
 authors = [
