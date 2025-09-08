@@ -90,8 +90,9 @@ match:
     - shell: "{{env.RY_GIT|/usr/bin/git}} add {{args.rest}}"
     - shell: |
         if [ -n "$({{env.RY_GIT|/usr/bin/git}} diff --staged --name-only)" ]; then
-            echo "INFO: Files staged" >&2
-            echo "  Next: ry git commit -m 'message'" >&2
+            echo "INFO: Files staged successfully" >&2
+            echo "  1. Review: git diff --stat --staged  (generates token)" >&2
+            echo "  2. Commit: REVIEW_TOKEN=<token> git commit -m 'type: description'" >&2
         fi
   
   status:
