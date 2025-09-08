@@ -52,7 +52,7 @@ match:
         import os
         
         # Get commit message from args (args.2 is the message after "commit -m")
-        msg = "{{args.2|}}"
+        msg = """{{args.2|}}"""
         if not msg:
             print("ERROR: No commit message provided", file=sys.stderr)
             print("  Usage: git commit -m 'message'", file=sys.stderr)
