@@ -123,7 +123,7 @@ match:
         HAS_VERSION_ARG=false
         for arg in {{args.all}}; do
             case "$arg" in
-                version|--package|--output-format|--json|--short|--dry-run) ;;
+                version|--bump|--package|--output-format|--json|--short|--dry-run) ;;
                 *) HAS_VERSION_ARG=true; break ;;
             esac
         done
@@ -150,7 +150,7 @@ match:
             OLD_VERSION=$(echo "$OLD_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
             
             # Set new version
-            UV_OUTPUT=$({{env.RY_UV|/usr/bin/uv}} {{args.all}})
+            UV_OUTPUT=$({{env.RY_UV|/usr/bin/uv}} version {{args.all}})
             
             # Get new version
             NEW_INFO=$({{env.RY_UV|/usr/bin/uv}} version $PACKAGE_FLAG --output-format json)
