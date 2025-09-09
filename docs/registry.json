@@ -12,7 +12,7 @@
       ],
       "entry": "changelog.yaml",
       "description": "Simple changelog management following Keep a Changelog format",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": "Fredrik Angelsen"
     },
     "git": {
@@ -29,7 +29,9 @@
       "description": "Enhanced git workflow with conventional commits and changelog integration",
       "version": "0.1.1",
       "author": "Fredrik Angelsen",
-      "dependencies": null
+      "dependencies": {
+        "changelog": ">=0.1.0"
+      }
     },
     "ry-lib": {
       "files": [
@@ -44,7 +46,7 @@
       ],
       "entry": "ry-lib.yaml",
       "description": "Library version management for ry",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": "Fredrik Angelsen",
       "dependencies": {
         "changelog": ">=0.1.0"
@@ -73,7 +75,7 @@
       ],
       "entry": "uv.yaml",
       "description": "Enhanced uv operations with git integration",
-      "version": "0.1.0",
+      "version": "0.1.2",
       "author": "Fredrik Angelsen",
       "dependencies": {
         "changelog": ">=0.1.0"

@@ -140,10 +140,13 @@ class CLI:
         lines.append("Usage:")
         if self.default_handler:
             lines.append(
-                f"  {self.name} <library> [args...]          Run an installed library"
+                f"  {self.name} <library> [args...] | sh     Execute an installed library"
             )
             lines.append(
-                f"  {self.name} <file.yaml> [args...]        Run a YAML file directly"
+                f"  {self.name} <file.yaml> [args...] | sh   Execute a YAML file"
+            )
+            lines.append(
+                f"  {self.name} <library> [args...]          Generate commands (dry run)"
             )
             lines.append("")
 
@@ -185,8 +188,9 @@ class CLI:
         lines.append("Examples:")
         lines.append(f"  {self.name} --install git                Install git library")
         lines.append(
-            f'  {self.name} git commit "message"         Use installed git library'
+            f'  {self.name} git commit "message" | sh    Execute git commit workflow'
         )
-        lines.append(f"  {self.name} ./my-workflow.yaml deploy    Run local YAML file")
+        lines.append(f"  {self.name} workflow.yaml deploy | sh    Execute YAML workflow")
+        lines.append(f"  {self.name} uv version                   Generate commands (dry run)")
 
         print("\n".join(lines))

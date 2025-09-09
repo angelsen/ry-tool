@@ -1,5 +1,5 @@
 name: uv
-version: 0.1.1
+version: 0.1.2
 description: Enhanced uv operations with git integration
 author: Fredrik Angelsen
 dependencies:

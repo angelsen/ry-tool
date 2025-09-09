@@ -1,4 +1,4 @@
 name: site-builder
-description: "Static site generator for project registries"
+description: Static site generator for project registries
 author: Fredrik Angelsen
-version: "0.1.0"
+version: 0.1.1

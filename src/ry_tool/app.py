@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ._cli import CLI
 from .core import RY
-from .packages import PackageManager, PackageDeveloper, LibraryResolver
+from .packages import PackageManager, LibraryResolver
 
 
 # Create the CLI app
@@ -80,49 +80,6 @@ def search(query: str = ""):
     else:
         print("No libraries found")
     return True
-
-
-# Developer commands
-@app.command(
-    "--dev-new",
-    help="Create new library template",
-    requires_arg=True,
-    arg_name="library",
-)
-def dev_new(library: str):
-    """Create a new library template."""
-    developer = PackageDeveloper()
-    return developer.new(library)
-
-
-@app.command("--dev-check", help="Validate all library YAML files")
-def dev_check():
-    """Check all libraries."""
-    developer = PackageDeveloper()
-    return developer.check()
-
-
-@app.command(
-    "--dev-test", help="Test a library locally", requires_arg=True, arg_name="library"
-)
-def dev_test(library: str, *args):
-    """Test a library."""
-    developer = PackageDeveloper()
-    return developer.test(library, *args)
-
-
-@app.command("--dev-registry", help="Update registry.json from libraries")
-def dev_registry():
-    """Update the registry."""
-    developer = PackageDeveloper()
-    return developer.update_registry()
-
-
-@app.command("--dev-publish", help="Update registry and push to git")
-def dev_publish():
-    """Publish to git."""
-    developer = PackageDeveloper()
-    return developer.publish()
 
 
 # Default handler for library execution

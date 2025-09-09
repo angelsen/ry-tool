@@ -101,9 +101,10 @@ class PackageManager:
                 return True
         
         # Install dependencies first
-        if "dependencies" in lib_info:
+        dependencies = lib_info.get("dependencies")
+        if dependencies and dependencies is not None:  # Handle both missing and null
             print(f"{indent}📎 Checking dependencies for {name}...")
-            for dep_name, dep_version in lib_info.get("dependencies", {}).items():
+            for dep_name, dep_version in dependencies.items():
                 # Check if dependency is installed and meets version requirement
                 if dep_name in self.installed:
                     installed_version = self.installed[dep_name].get("version", "0.0.0")

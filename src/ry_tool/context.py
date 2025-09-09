@@ -3,9 +3,10 @@ Execution context for ry.
 Single responsibility: hold all execution state in one place.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Dict
+import yaml
 
 
 @dataclass
@@ -16,11 +17,33 @@ class ExecutionContext:
     args: List[str]
     library_dir: Optional[Path] = None
     env: Dict[str, str] = None
+    library_meta: Dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
-        """Initialize environment if not provided."""
+        """Initialize environment and load library metadata if needed."""
         if self.env is None:
             self.env = {}
+        
+        # Load library metadata if in library context
+        if self.library_dir:
+            self.library_meta = self._load_library_meta()
+
+    def _load_library_meta(self) -> Dict[str, str]:
+        """Load library metadata from meta.yaml."""
+        meta_path = self.library_dir / 'meta.yaml'
+        if meta_path.exists():
+            with open(meta_path) as f:
+                meta = yaml.safe_load(f)
+                return {
+                    'library_name': meta.get('name', self.library_dir.name),
+                    'library_version': meta.get('version', 'unknown'),
+                    'library_description': meta.get('description', ''),
+                    'library_author': meta.get('author', 'unknown')
+                }
+        return {
+            'library_name': self.library_dir.name,
+            'library_version': 'unknown'
+        }
 
     @property
     def is_library(self) -> bool:

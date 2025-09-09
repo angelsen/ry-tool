@@ -47,7 +47,7 @@ def update_changelog(lib_dir: pathlib.Path, old_version: str, new_version: str, 
     env['CHANGELOG_PATH'] = str(changelog_file)
     
     result = subprocess.run(
-        ['ry', 'changelog', 'update', new_version],
+        ['ry', 'changelog', 'bump', new_version],
         env=env,
         capture_output=True,
         text=True

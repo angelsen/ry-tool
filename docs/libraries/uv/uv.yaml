@@ -12,6 +12,19 @@ match:
             exit 1
         fi
         
+        # Check version sync if CHANGELOG exists
+        if [ -f "CHANGELOG.md" ]; then
+            CURRENT_VERSION=$({{env.RY_UV|/usr/bin/uv}} version --output-format json | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
+            LAST_CHANGELOG=$(ry changelog last-version 2>/dev/null | sh)
+            
+            if [ $? -eq 0 ] && [ "$CURRENT_VERSION" != "$LAST_CHANGELOG" ]; then
+                echo "WARNING: Version mismatch detected" >&2
+                echo "  pyproject.toml: $CURRENT_VERSION" >&2
+                echo "  CHANGELOG.md:   $LAST_CHANGELOG" >&2
+                echo "  This will be fixed during bump" >&2
+            fi
+        fi
+        
         # Detect changelog location based on --package flag
         CHANGELOG="CHANGELOG.md"
         if echo "{{args.all}}" | grep -q -- "--package"; then
@@ -98,8 +111,12 @@ match:
         # Show original uv output
         echo "$UV_OUTPUT"
 
+  "--ry-version":
+    # Show library version
+    - shell: echo "{{library_name}} version {{library_version}}"
+  
   version:
-    # Handle both "version" (show) and "version X.Y.Z" (set)
+    # Handle both "version" (show) and "version X.Y.Z" (set) for native uv
     - shell: |
         # Check if we're setting a version (have additional args beyond "version")
         # This handles: version 1.2.3, version --package foo 1.2.3

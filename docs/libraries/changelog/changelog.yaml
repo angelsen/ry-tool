@@ -89,6 +89,35 @@ match:
             print(f"  Make sure [Unreleased] section exists", file=sys.stderr)
             sys.exit(1)
   
+  last-version:
+    # Get the last released version from CHANGELOG
+    - python: |
+        import sys
+        import re
+        from pathlib import Path
+        import os
+        
+        # Support custom path via environment
+        changelog_path = os.environ.get('CHANGELOG_PATH', 'CHANGELOG.md')
+        changelog = Path(changelog_path)
+        
+        if not changelog.exists():
+            print("ERROR: No CHANGELOG.md found", file=sys.stderr)
+            sys.exit(1)
+        
+        content = changelog.read_text()
+        
+        # Find first version entry (not Unreleased)
+        version_pattern = r'## \[(\d+\.\d+\.\d+[^\]]*)\]'
+        match = re.search(version_pattern, content)
+        
+        if match:
+            # Output just the version to stdout for capture
+            print(match.group(1))
+        else:
+            print("ERROR: No version found in CHANGELOG", file=sys.stderr)
+            sys.exit(1)
+  
   validate:
     # Validate changelog format (for CI/CD)
     - python: |
@@ -123,6 +152,15 @@ match:
         
         print(f"SUCCESS: {changelog_path} format is valid", file=sys.stderr)
         sys.exit(0)
+  
+  "check --hook-snippet":
+    # Show git hook snippet for changelog checking
+    - shell: |
+        echo "# Add to .git/hooks/pre-commit:" >&2
+        echo "#!/bin/bash" >&2
+        echo "" >&2
+        echo "# Check CHANGELOG has content for commits" >&2
+        echo "ry changelog check | sh" >&2
   
   check:
     # Check if [Unreleased] has content (for pre-commit hooks)
@@ -176,16 +214,20 @@ match:
         print(f"SUCCESS: [Unreleased] section has content", file=sys.stderr)
         sys.exit(0)
   
+  "--ry-version":
+    - shell: echo "{{library_name}} version {{library_version}}"
+  
   # Default: show help
   default:
     - shell: |
         echo "Usage: ry changelog <command>" >&2
         echo "" >&2
         echo "Commands:" >&2
-        echo "  init     - Create new CHANGELOG.md from template" >&2
-        echo "  bump     - Bump version (move [Unreleased] to version section)" >&2
-        echo "  check    - Check if [Unreleased] has content (pre-commit)" >&2
-        echo "  validate - Validate changelog format (CI/CD)" >&2
+        echo "  init         - Create new CHANGELOG.md from template" >&2
+        echo "  bump         - Bump version (move [Unreleased] to version section)" >&2
+        echo "  check        - Check if [Unreleased] has content (pre-commit)" >&2
+        echo "  validate     - Validate changelog format (CI/CD)" >&2
+        echo "  last-version - Get the last released version from CHANGELOG" >&2
         echo "" >&2
         echo "Examples:" >&2
         echo "  ry changelog init" >&2

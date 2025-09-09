@@ -160,7 +160,8 @@ class CommandGenerator:
         original_processor = self.processor
         if self.processor:
             from .template import TemplateProcessor
-            self.processor = TemplateProcessor(consumed_args)
+            # Pass library metadata to new processor instance
+            self.processor = TemplateProcessor(consumed_args, self.context.library_meta)
 
         # Process matched action
         if isinstance(matched, list):

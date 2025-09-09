@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **BREAKING**: Removed all `--dev-*` commands in favor of `ry-lib` library
+  - `--dev-new` → `ry ry-lib init`
+  - `--dev-check` → `ry ry-lib validate`
+  - `--dev-registry` → `ry ry-lib registry`
+  - `--dev-publish` → `ry ry-lib publish`
+- Deleted `developer.py` module - all functionality now in `ry-lib` library
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.3.1] - 2025-09-09
+
 ### Added
 - Centralized configuration system (`src/ry_tool/config.py`)
 - Custom exception hierarchy (`src/ry_tool/exceptions.py`) 
@@ -19,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `changelog check` command for pre-commit hooks
 - `changelog validate` command for CI/CD
 - Comprehensive documentation in STYLE_GUIDE.md
+- Workspace support for uv library with --package flags
+- Hook snippet patterns (--hook-snippet) for git integration
 
 ### Changed
 - All executors now use shared base64 encoding pipeline
@@ -31,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Augmentation libraries use `{{env.RY_TOOL|/usr/bin/tool}}` pattern
 - All output now consistently goes to stderr
 - Updated all documentation to reflect current state (not aspirational)
+- ry-lib uses --hook-snippet instead of install-hooks
+- uv library has strict fail-early checks
 
 ### Fixed
 - YAML quoting issues in library files
@@ -41,12 +63,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unicode symbols replaced with text prefixes
 - All meta.yaml files now have proper structure
 - Git library args.rest vs args.all distinction
+- All library CHANGELOGs now have [Unreleased] sections
 
 ## [0.3.0] - 2025-09-07
 
 ### Added
 - Complete package management system (`--install`, `--update`, `--uninstall`, `--list`, `--search`)
-- Developer tools (`--dev-check`, `--dev-new`, `--dev-registry`, `--dev-publish`)
+- Developer tools (now removed in favor of ry-lib library)
 - `libraries/site-builder/` - Static site generator for GitHub Pages documentation
 - ExecutionContext class for clean state management
 - Custom CLI framework replacing typer dependency

@@ -97,6 +97,9 @@ match:
           echo "INFO: No index.html to clean" >&2
         fi
   
+  "--ry-version":
+    - shell: echo "{{library_name}} version {{library_version}}"
+  
   default:
     - shell: |
         echo "Usage: ry site-builder <command>" >&2

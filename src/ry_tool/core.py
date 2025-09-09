@@ -64,8 +64,8 @@ class RY:
         Returns:
             Exit code (0 for success)
         """
-        # Create template processor
-        processor = TemplateProcessor(self.context.args)
+        # Create template processor with library metadata if available
+        processor = TemplateProcessor(self.context.args, self.context.library_meta)
 
         # Create generator with context
         generator = CommandGenerator(self.config, self.context, processor)

@@ -1,6 +1,6 @@
 name: ry-lib
 description: Library version management for ry
 author: Fredrik Angelsen
-version: 0.2.1
+version: 0.2.2
 dependencies:
   changelog: '>=0.1.0'

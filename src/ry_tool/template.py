@@ -12,12 +12,12 @@ from .exceptions import TemplateError
 class TemplateProcessor:
     """Process template variables in strings with pipe defaults."""
 
-    def __init__(self, args: List[str]):
-        """Initialize with arguments and environment."""
-        self.context = self._build_context(args)
+    def __init__(self, args: List[str], metadata: Dict[str, str] = None):
+        """Initialize with arguments, environment, and optional metadata."""
+        self.context = self._build_context(args, metadata)
 
-    def _build_context(self, args: List[str]) -> Dict[str, str]:
-        """Build substitution context from args and environment."""
+    def _build_context(self, args: List[str], metadata: Dict[str, str] = None) -> Dict[str, str]:
+        """Build substitution context from args, environment, and metadata."""
         ctx = {}
 
         # Arguments
@@ -33,6 +33,10 @@ class TemplateProcessor:
         # Environment variables
         for key, value in os.environ.items():
             ctx[f"env.{key}"] = value
+
+        # Add metadata (library info, etc.) if provided
+        if metadata:
+            ctx.update(metadata)
 
         return ctx
 

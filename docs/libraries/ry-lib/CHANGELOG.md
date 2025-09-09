@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [0.2.2] - 2025-09-09
+
+### Added
+- Added `--ry-version` command using template variables
+
+### Changed
+
+### Fixed
+- Fixed critical bug: `bump` command was calling non-existent `changelog update` (should be `changelog bump`)
+
+### Removed
+
 ## [0.2.1] - 2025-09-09
 
 ### Changed

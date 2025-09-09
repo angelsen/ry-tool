@@ -202,6 +202,9 @@ match:
         fi
     - shell: "{{env.RY_GIT|/usr/bin/git}} push {{args.all|}}"
   
+  "--ry-version":
+    - shell: echo "{{library_name}} version {{library_version}}"
+  
   # Pass through everything else
   default:
     - shell: "{{env.RY_GIT|/usr/bin/git}} {{args.all}}"

@@ -3,6 +3,7 @@ version: 0.1.1
 description: Enhanced git workflow with conventional commits and changelog integration
 author: Fredrik Angelsen
 dependencies:
+  changelog: ">=0.1.0"
 provides:
 - commit validation
 - AI signature stripping

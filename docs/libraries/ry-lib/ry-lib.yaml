@@ -138,11 +138,8 @@ match:
         /usr/bin/git push
         echo "SUCCESS: Published to repository" >&2
   
-  test:
-    - shell: 'echo "SUCCESS: ry-lib library is working!" >&2'
-  
-  version:
-    - shell: 'echo "ry-lib version 0.2.1"'
+  "--ry-version":
+    - shell: echo "{{library_name}} version {{library_version}}"
   
   default:
     - shell: 'echo "Usage: ry ry-lib <command>" >&2'

@@ -21,14 +21,26 @@ def update_changelog_version(changelog_path: Path, version: str) -> bool:
     # Get today's date
     today = date.today().strftime("%Y-%m-%d")
     
-    # Create new version section header
-    new_section = f"## [{version}] - {today}"
+    # Find the [Unreleased] section and its content
+    import re
     
-    # Replace [Unreleased] with new [Unreleased] and version section
-    # This keeps empty [Unreleased] at top and moves content to version
-    updated_content = content.replace(
+    # Pattern to match [Unreleased] section until the next ## heading or end of file
+    unreleased_pattern = r'(## \[Unreleased\].*?)(?=\n## |\Z)'
+    match = re.search(unreleased_pattern, content, re.DOTALL)
+    
+    if not match:
+        return False
+    
+    old_unreleased = match.group(1)
+    
+    # Create new version section with the OLD [Unreleased] content
+    new_version = old_unreleased.replace(
         "## [Unreleased]",
-        f"""## [Unreleased]
+        f"## [{version}] - {today}"
+    )
+    
+    # Create fresh empty [Unreleased] section
+    empty_unreleased = """## [Unreleased]
 
 ### Added
 
@@ -36,9 +48,12 @@ def update_changelog_version(changelog_path: Path, version: str) -> bool:
 
 ### Fixed
 
-### Removed
-
-{new_section}"""
+### Removed"""
+    
+    # Replace old [Unreleased] with new empty + version with content
+    updated_content = content.replace(
+        old_unreleased,
+        f"{empty_unreleased}\n\n{new_version}"
     )
     
     changelog_path.write_text(updated_content)
