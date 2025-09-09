@@ -46,7 +46,7 @@
       ],
       "entry": "ry-lib.yaml",
       "description": "Library version management for ry",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "author": "Fredrik Angelsen",
       "dependencies": {
         "changelog": ">=0.1.0"
@@ -62,7 +62,7 @@
       ],
       "entry": "site-builder.yaml",
       "description": "Static site generator for project registries",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": "Fredrik Angelsen"
     },
     "uv": {
