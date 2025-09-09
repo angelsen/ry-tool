@@ -206,7 +206,7 @@ match:
             echo "$UV_OUTPUT"
         else
             # Just showing version
-            {{env.RY_UV|/usr/bin/uv}} {{args.all}}
+            {{env.RY_UV|/usr/bin/uv}} version {{args.all}}
         fi
   
   publish:
