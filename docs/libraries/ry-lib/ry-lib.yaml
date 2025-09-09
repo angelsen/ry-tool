@@ -3,6 +3,14 @@
 
 match:
   # Check if library versions need bumping
+  "check-versions --hook-snippet":
+    - shell: |
+        echo "# Add to .git/hooks/pre-commit:" >&2
+        echo "#!/bin/bash" >&2
+        echo "" >&2
+        echo "# Check library versions before commit" >&2
+        echo "ry ry-lib check-versions | sh" >&2
+  
   check-versions:
     - python: |
         import sys
@@ -39,23 +47,6 @@ match:
         
         if not bump_library_version(lib_name, bump_type):
             sys.exit(1)
-  
-  # Install git hooks for version checking
-  install-hooks:
-    - shell: |
-        # Install pre-commit hook
-        cat > .git/hooks/pre-commit << 'EOF'
-        #!/bin/bash
-        # Check if library versions need bumping
-        echo "Checking library versions..."
-        if ! ry ry-lib check-versions; then
-            echo "ERROR: Library files changed but version not bumped!"
-            echo "  Run: ry ry-lib bump <library> [patch|minor|major]"
-            exit 1
-        fi
-        EOF
-        chmod +x .git/hooks/pre-commit
-        echo "SUCCESS: Installed pre-commit hook for version checking" >&2
   
   # List all library versions
   list:
@@ -151,7 +142,7 @@ match:
     - shell: 'echo "SUCCESS: ry-lib library is working!" >&2'
   
   version:
-    - shell: 'echo "ry-lib version 0.2.0"'
+    - shell: 'echo "ry-lib version 0.2.1"'
   
   default:
     - shell: 'echo "Usage: ry ry-lib <command>" >&2'
@@ -160,7 +151,7 @@ match:
     - shell: 'echo "  validate         - Validate all library YAML files" >&2'
     - shell: 'echo "  registry         - Update registry.json" >&2'
     - shell: 'echo "  publish          - Update registry and push to git" >&2'
-    - shell: 'echo "  check-versions   - Check if changed libraries have version bumps" >&2'
+    - shell: 'echo "  check-versions              - Check if changed libraries have version bumps" >&2'
+    - shell: 'echo "  check-versions --hook-snippet - Show git pre-commit hook code" >&2'
     - shell: 'echo "  bump <lib> <type> - Bump library version (patch/minor/major)" >&2'
-    - shell: 'echo "  install-hooks    - Install git hooks for version checking" >&2'
     - shell: 'echo "  list            - List all library versions" >&2'

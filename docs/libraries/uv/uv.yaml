@@ -1,26 +1,42 @@
 # uv.yaml - Enhanced uv operations with git integration
-# Usage: ry libraries/uv/uv.yaml <command> [args...]
+# Usage: ry uv <command> [args...]
 
 match:
   "version --bump":
-    # Bump workflow - version will definitely change
+    # Pre-flight checks
     - shell: |
-        # Pre-flight checks
+        # Check git clean
         if [ -n "$({{env.RY_GIT|/usr/bin/git}} status --porcelain)" ]; then
             echo "ERROR: Working directory not clean" >&2
             echo "  Commit or stash changes first" >&2
             exit 1
         fi
         
-        if [ ! -f "CHANGELOG.md" ]; then
-            echo "ERROR: No CHANGELOG.md found" >&2
+        # Detect changelog location based on --package flag
+        CHANGELOG="CHANGELOG.md"
+        if echo "{{args.all}}" | grep -q -- "--package"; then
+            PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
+            if [ -f "packages/$PACKAGE/CHANGELOG.md" ]; then
+                CHANGELOG="packages/$PACKAGE/CHANGELOG.md"
+            fi
+        fi
+        
+        if [ ! -f "$CHANGELOG" ]; then
+            echo "ERROR: No $CHANGELOG found" >&2
             echo "  Run: ry changelog init" >&2
             echo "  Then update the [Unreleased] section with your changes" >&2
             exit 1
         fi
     
-    # Get current state
-    - shell: "{{env.RY_UV|/usr/bin/uv}} version --output-format json"
+    # Get current state (handles --package automatically)
+    - shell: |
+        # Extract --package flag if present for version query
+        PACKAGE_FLAG=""
+        if echo "{{args.all}}" | grep -q -- "--package"; then
+            PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
+            PACKAGE_FLAG="--package $PACKAGE"
+        fi
+        {{env.RY_UV|/usr/bin/uv}} version $PACKAGE_FLAG --output-format json
       capture: OLD_INFO
     
     # Execute the bump
@@ -28,7 +44,14 @@ match:
       capture: UV_OUTPUT
     
     # Get new state
-    - shell: "{{env.RY_UV|/usr/bin/uv}} version --output-format json"
+    - shell: |
+        # Extract --package flag if present for version query
+        PACKAGE_FLAG=""
+        if echo "{{args.all}}" | grep -q -- "--package"; then
+            PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
+            PACKAGE_FLAG="--package $PACKAGE"
+        fi
+        {{env.RY_UV|/usr/bin/uv}} version $PACKAGE_FLAG --output-format json
       capture: NEW_INFO
     
     # Process the change
@@ -38,13 +61,23 @@ match:
         NEW_VERSION=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
         PACKAGE_NAME=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['package_name'])")
         
-        # Update changelog if ry is available
-        if [ -f "CHANGELOG.md" ] && command -v ry >/dev/null; then
+        # Detect changelog location
+        CHANGELOG="CHANGELOG.md"
+        if echo "{{args.all}}" | grep -q -- "--package"; then
+            PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
+            if [ -f "packages/$PACKAGE/CHANGELOG.md" ]; then
+                CHANGELOG="packages/$PACKAGE/CHANGELOG.md"
+            fi
+        fi
+        
+        # Update changelog if available
+        if [ -f "$CHANGELOG" ] && command -v ry >/dev/null 2>&1; then
+            echo "INFO: Updating $CHANGELOG" >&2
             ry changelog bump "$NEW_VERSION" 2>/dev/null || true
         fi
         
         # Sync dependencies
-        echo "INFO: Syncing dependencies..." >&2
+        echo "INFO: Syncing dependencies" >&2
         {{env.RY_UV|/usr/bin/uv}} sync --quiet
         
         # Git operations (atomic with version bump)
@@ -56,11 +89,9 @@ match:
         {{env.RY_GIT|/usr/bin/git}} tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
         
         # Success feedback
-        echo "" >&2
-        echo "SUCCESS: Bumped ${PACKAGE_NAME}: ${OLD_VERSION} → ${NEW_VERSION}" >&2
+        echo "SUCCESS: Bumped ${PACKAGE_NAME}: ${OLD_VERSION} -> ${NEW_VERSION}" >&2
         echo "SUCCESS: Committed and tagged as ${TAG_NAME}" >&2
-        echo "" >&2
-        echo "Next steps:" >&2
+        echo "INFO: Next steps:" >&2
         echo "  git push origin main" >&2
         echo "  git push origin ${TAG_NAME}" >&2
         
@@ -70,8 +101,17 @@ match:
   version:
     # Handle both "version" (show) and "version X.Y.Z" (set)
     - shell: |
-        # Check if we're setting a version (have additional args)
-        if [ $# -gt 1 ]; then
+        # Check if we're setting a version (have additional args beyond "version")
+        # This handles: version 1.2.3, version --package foo 1.2.3
+        HAS_VERSION_ARG=false
+        for arg in {{args.all}}; do
+            case "$arg" in
+                version|--package|--output-format|--json|--short|--dry-run) ;;
+                *) HAS_VERSION_ARG=true; break ;;
+            esac
+        done
+        
+        if [ "$HAS_VERSION_ARG" = "true" ]; then
             # Setting version - need git workflow
             
             # Pre-flight checks
@@ -81,15 +121,22 @@ match:
                 exit 1
             fi
             
+            # Extract --package flag if present
+            PACKAGE_FLAG=""
+            if echo "{{args.all}}" | grep -q -- "--package"; then
+                PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
+                PACKAGE_FLAG="--package $PACKAGE"
+            fi
+            
             # Get current version
-            OLD_INFO=$({{env.RY_UV|/usr/bin/uv}} version --output-format json)
+            OLD_INFO=$({{env.RY_UV|/usr/bin/uv}} version $PACKAGE_FLAG --output-format json)
             OLD_VERSION=$(echo "$OLD_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
             
             # Set new version
             UV_OUTPUT=$({{env.RY_UV|/usr/bin/uv}} {{args.all}})
             
             # Get new version
-            NEW_INFO=$({{env.RY_UV|/usr/bin/uv}} version --output-format json)
+            NEW_INFO=$({{env.RY_UV|/usr/bin/uv}} version $PACKAGE_FLAG --output-format json)
             NEW_VERSION=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
             PACKAGE_NAME=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['package_name'])")
             
@@ -102,14 +149,20 @@ match:
             # Version changed - do git workflow
             echo "INFO: Version changed from ${OLD_VERSION} to ${NEW_VERSION}" >&2
             
+            # Detect changelog location
+            CHANGELOG="CHANGELOG.md"
+            if [ -n "$PACKAGE_FLAG" ] && [ -f "packages/$PACKAGE/CHANGELOG.md" ]; then
+                CHANGELOG="packages/$PACKAGE/CHANGELOG.md"
+            fi
+            
             # Update changelog if available
-            if [ -f "CHANGELOG.md" ] && command -v ry >/dev/null; then
-                echo "INFO: Updating CHANGELOG.md..." >&2
+            if [ -f "$CHANGELOG" ] && command -v ry >/dev/null 2>&1; then
+                echo "INFO: Updating $CHANGELOG" >&2
                 ry changelog bump "$NEW_VERSION" 2>/dev/null || true
             fi
             
             # Sync dependencies
-            echo "INFO: Syncing dependencies..." >&2
+            echo "INFO: Syncing dependencies" >&2
             {{env.RY_UV|/usr/bin/uv}} sync --quiet
             
             # Git operations (atomic with version set)
@@ -126,11 +179,9 @@ match:
             TAG_NAME="${PACKAGE_NAME}-v${NEW_VERSION}"
             {{env.RY_GIT|/usr/bin/git}} tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
             
-            echo "" >&2
-            echo "SUCCESS: Set ${PACKAGE_NAME}: ${OLD_VERSION} → ${NEW_VERSION}" >&2
+            echo "SUCCESS: Set ${PACKAGE_NAME}: ${OLD_VERSION} -> ${NEW_VERSION}" >&2
             echo "SUCCESS: Committed and tagged as ${TAG_NAME}" >&2
-            echo "" >&2
-            echo "Next steps:" >&2
+            echo "INFO: Next steps:" >&2
             echo "  git push origin main" >&2
             echo "  git push origin ${TAG_NAME}" >&2
             
@@ -138,56 +189,127 @@ match:
             echo "$UV_OUTPUT"
         else
             # Just showing version
-            {{env.RY_UV|/usr/bin/uv}} version {{args.all|}}
+            {{env.RY_UV|/usr/bin/uv}} {{args.all}}
         fi
   
   publish:
-    # Pre-flight check for tagged version
-    - python: |
-        import sys
-        import subprocess
-        import json
-        
-        # Get current version info
-        result = subprocess.run(
-            ["{{env.RY_UV|/usr/bin/uv}}", "version", "--output-format", "json"],
-            capture_output=True,
-            text=True
-        )
-        
-        if result.returncode == 0:
-            data = json.loads(result.stdout)
-            version = data['version']
-            package = data['package_name']
-            tag = f"{package}-v{version}"
-            
-            # Check if tag exists
-            tag_check = subprocess.run(
-                ["{{env.RY_GIT|/usr/bin/git}}", "tag", "-l", tag],
-                capture_output=True,
-                text=True
-            )
-            
-            if not tag_check.stdout.strip():
-                print(f"ERROR: Version {version} is not tagged", file=sys.stderr)
-                print(f"  Expected tag: {tag}", file=sys.stderr)
-                print(f"  Run: ry uv version --bump patch", file=sys.stderr)
-                sys.exit(1)
-            
-            print(f"INFO: Version {version} is properly tagged", file=sys.stderr)
-    
-    # Run the actual publish
-    - shell: "{{env.RY_UV|/usr/bin/uv}} {{args.all}}"
-  
-  build:
-    # Clean and build
+    # Pre-flight checks
     - shell: |
-        if [ -d "dist" ]; then
-            echo "INFO: Cleaning dist/ directory..." >&2
-            rm -rf dist/*
+        # Check for dist files
+        DIST_FILES="{{args.all|dist/*}}"
+        if ! ls $DIST_FILES >/dev/null 2>&1; then
+            echo "ERROR: No dist files found at: $DIST_FILES" >&2
+            echo "  Build first: uv build" >&2
+            exit 1
         fi
         
-        echo "INFO: Building package..." >&2
+        # Extract package and version from wheel or sdist
+        PACKAGE=""
+        VERSION=""
+        for file in $DIST_FILES; do
+            if [[ "$file" == *.whl ]]; then
+                # Extract from wheel: package_name-version-py3-none-any.whl
+                BASENAME=$(basename "$file")
+                PACKAGE=$(echo "$BASENAME" | cut -d'-' -f1)
+                VERSION=$(echo "$BASENAME" | cut -d'-' -f2)
+                break
+            elif [[ "$file" == *.tar.gz ]]; then
+                # Extract from sdist: package_name-version.tar.gz
+                BASENAME=$(basename "$file" .tar.gz)
+                PACKAGE=$(echo "$BASENAME" | rev | cut -d'-' -f2- | rev)
+                VERSION=$(echo "$BASENAME" | rev | cut -d'-' -f1 | rev)
+                break
+            fi
+        done
+        
+        if [ -z "$PACKAGE" ] || [ -z "$VERSION" ]; then
+            echo "ERROR: Could not determine package name and version from dist files" >&2
+            exit 1
+        fi
+        
+        # Check if version is tagged
+        TAG="${PACKAGE}-v${VERSION}"
+        if ! {{env.RY_GIT|/usr/bin/git}} tag -l "$TAG" | grep -q .; then
+            echo "ERROR: Version $VERSION is not tagged" >&2
+            echo "  Expected tag: $TAG" >&2
+            echo "  Tag it: git tag $TAG" >&2
+            echo "  Or bump: uv version --bump patch" >&2
+            exit 1
+        fi
+        
+        # Check if tag is pushed to remote
+        if ! {{env.RY_GIT|/usr/bin/git}} ls-remote --tags origin | grep -q "refs/tags/$TAG"; then
+            echo "ERROR: Tag $TAG exists locally but not on origin" >&2
+            echo "  Push tag: git push origin $TAG" >&2
+            exit 1
+        fi
+        
+        # Check for token
+        if [ -z "$UV_PUBLISH_TOKEN" ]; then
+            # Try to get from pass
+            if command -v pass >/dev/null 2>&1 && pass pypi/token >/dev/null 2>&1; then
+                export UV_PUBLISH_TOKEN=$(pass pypi/token)
+                echo "INFO: Token loaded from pass" >&2
+            else
+                echo "ERROR: No UV_PUBLISH_TOKEN set" >&2
+                echo "  Set: export UV_PUBLISH_TOKEN=pypi-..." >&2
+                echo "  Or store: pass insert pypi/token" >&2
+                exit 1
+            fi
+        fi
+        
+        # Warn about dry-run for safety
+        if ! echo "{{args.all}}" | grep -q -- "--dry-run"; then
+            echo "WARNING: Publishing without --dry-run" >&2
+            echo "  Consider: uv publish --dry-run $DIST_FILES" >&2
+        fi
+    
+    # Run publish
+    - shell: |
+        echo "INFO: Publishing to PyPI" >&2
+        {{env.RY_UV|/usr/bin/uv}} {{args.all}}
+  
+  build:
+    # Pre-flight checks
+    - shell: |
+        # Check for uncommitted changes (only if in git repo)
+        if {{env.RY_GIT|/usr/bin/git}} rev-parse --git-dir >/dev/null 2>&1; then
+            if [ -n "$({{env.RY_GIT|/usr/bin/git}} status --porcelain)" ]; then
+                echo "ERROR: Uncommitted changes detected" >&2
+                echo "  Building from dirty tree may include unwanted files" >&2
+                echo "  Commit or stash changes first" >&2
+                exit 1
+            fi
+        fi
+        
+        # Determine dist directory based on flags
+        if echo "{{args.all}}" | grep -q -- "--package"; then
+            PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
+            DIST_DIR="packages/$PACKAGE/dist"
+        elif echo "{{args.all}}" | grep -q -- "--all-packages"; then
+            # Check all package dist directories
+            for dir in packages/*/dist; do
+                if [ -d "$dir" ] && [ "$(ls -A $dir 2>/dev/null)" ]; then
+                    echo "ERROR: $dir is not empty" >&2
+                    echo "  Clean with: rm -rf $dir/*" >&2
+                    exit 1
+                fi
+            done
+            DIST_DIR=""  # Already checked all
+        else
+            DIST_DIR="dist"
+        fi
+        
+        # Check if dist is empty (single package or root)
+        if [ -n "$DIST_DIR" ] && [ -d "$DIST_DIR" ] && [ "$(ls -A $DIST_DIR 2>/dev/null)" ]; then
+            echo "ERROR: $DIST_DIR is not empty" >&2
+            echo "  Clean with: rm -rf $DIST_DIR/*" >&2
+            exit 1
+        fi
+    
+    # Run build
+    - shell: |
+        echo "INFO: Building package" >&2
         {{env.RY_UV|/usr/bin/uv}} {{args.all}}
   
   # Pass through all other commands unchanged

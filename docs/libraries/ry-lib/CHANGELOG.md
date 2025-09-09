@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.2.1] - 2025-09-09
+
+### Changed
+- Removed install-hooks command in favor of --hook-snippet pattern
+- Updated check-versions to support --hook-snippet option
+
+### Removed
+- install-hooks command (replaced with --hook-snippet)
+
 ## [0.2.0] - 2025-09-08
 
 ### Changed
