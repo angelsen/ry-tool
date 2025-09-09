@@ -40,14 +40,14 @@ match:
         
         # Update changelog if ry is available
         if [ -f "CHANGELOG.md" ] && command -v ry >/dev/null; then
-            ry changelog update "$NEW_VERSION" 2>/dev/null || true
+            ry changelog bump "$NEW_VERSION" 2>/dev/null || true
         fi
         
         # Sync dependencies
         echo "INFO: Syncing dependencies..." >&2
         {{env.RY_UV|/usr/bin/uv}} sync --quiet
         
-        # Git operations
+        # Git operations (atomic with version bump)
         {{env.RY_GIT|/usr/bin/git}} add -A
         {{env.RY_GIT|/usr/bin/git}} commit -m "chore(${PACKAGE_NAME}): bump version from ${OLD_VERSION} to ${NEW_VERSION}"
         
@@ -56,8 +56,9 @@ match:
         {{env.RY_GIT|/usr/bin/git}} tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
         
         # Success feedback
+        echo "" >&2
         echo "SUCCESS: Bumped ${PACKAGE_NAME}: ${OLD_VERSION} → ${NEW_VERSION}" >&2
-        echo "SUCCESS: Created tag: ${TAG_NAME}" >&2
+        echo "SUCCESS: Committed and tagged as ${TAG_NAME}" >&2
         echo "" >&2
         echo "Next steps:" >&2
         echo "  git push origin main" >&2
@@ -104,14 +105,14 @@ match:
             # Update changelog if available
             if [ -f "CHANGELOG.md" ] && command -v ry >/dev/null; then
                 echo "INFO: Updating CHANGELOG.md..." >&2
-                ry changelog update "$NEW_VERSION" 2>/dev/null || true
+                ry changelog bump "$NEW_VERSION" 2>/dev/null || true
             fi
             
             # Sync dependencies
             echo "INFO: Syncing dependencies..." >&2
             {{env.RY_UV|/usr/bin/uv}} sync --quiet
             
-            # Git operations
+            # Git operations (atomic with version set)
             {{env.RY_GIT|/usr/bin/git}} add -A
             
             # Appropriate commit message
@@ -125,8 +126,9 @@ match:
             TAG_NAME="${PACKAGE_NAME}-v${NEW_VERSION}"
             {{env.RY_GIT|/usr/bin/git}} tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
             
+            echo "" >&2
             echo "SUCCESS: Set ${PACKAGE_NAME}: ${OLD_VERSION} → ${NEW_VERSION}" >&2
-            echo "SUCCESS: Created tag: ${TAG_NAME}" >&2
+            echo "SUCCESS: Committed and tagged as ${TAG_NAME}" >&2
             echo "" >&2
             echo "Next steps:" >&2
             echo "  git push origin main" >&2

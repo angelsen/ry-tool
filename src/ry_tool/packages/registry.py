@@ -157,6 +157,8 @@ class Registry:
             metadata["version"] = meta["version"]
         if "author" in meta:
             metadata["author"] = meta["author"]
+        if "dependencies" in meta:
+            metadata["dependencies"] = meta["dependencies"]
 
         return metadata
 
@@ -178,12 +180,29 @@ class Registry:
 
     def get_registry(self) -> Dict:
         """
-        Get registry data - try remote first, fall back to local.
+        Get registry data - merge remote and local registries.
+        
+        Priority:
+        1. Remote registry for published libraries
+        2. Local registry for development libraries
+        3. Local overrides remote if both have same library
 
         Returns:
-            Registry data from remote or local, or empty structure
+            Merged registry data
         """
-        return self.fetch_remote() or self.load_local()
+        remote = self.fetch_remote()
+        local = self.load_local()
+        
+        # If we have both, merge them (local takes precedence for conflicts)
+        if remote and local.get("libraries"):
+            # Start with remote
+            merged = remote.copy()
+            # Override/add local libraries
+            merged["libraries"].update(local.get("libraries", {}))
+            return merged
+        
+        # Return whichever we have
+        return remote or local
 
     def search(self, query: str = "") -> List[Dict]:
         """

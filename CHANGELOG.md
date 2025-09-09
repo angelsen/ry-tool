@@ -12,17 +12,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom exception hierarchy (`src/ry_tool/exceptions.py`) 
 - Unified base64 encoding method in base executor
 - Local library installation support in package manager
+- `ry-lib` library for library management (replaced ry-dev)
+- Style enforcement system via `/enforce-ry-style` command
+- Claude Code agents and commands for style checking
+- Tool invocation safety patterns (prevent recursion)
+- `changelog check` command for pre-commit hooks
+- `changelog validate` command for CI/CD
+- Comprehensive documentation in STYLE_GUIDE.md
 
 ### Changed
 - All executors now use shared base64 encoding pipeline
 - Registry operations unified with fallback to local
 - Loader tags now raise exceptions instead of silent failures
 - Template processor raises exceptions instead of sys.exit
+- Renamed `ry-dev` to `ry-lib` for clarity
+- `changelog update` renamed to `changelog bump`
+- All libraries now use `/usr/bin/tool` for safety
+- Augmentation libraries use `{{env.RY_TOOL|/usr/bin/tool}}` pattern
+- All output now consistently goes to stderr
+- Updated all documentation to reflect current state (not aspirational)
 
 ### Fixed
 - YAML quoting issues in library files
 - Normalizer script path execution bug
 - Interactive command handling in guard wrappers
+- Tool invocation recursion risks in helper scripts
+- Missing stderr redirects in all libraries
+- Unicode symbols replaced with text prefixes
+- All meta.yaml files now have proper structure
+- Git library args.rest vs args.all distinction
 
 ## [0.3.0] - 2025-09-07
 

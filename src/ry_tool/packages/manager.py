@@ -45,32 +45,77 @@ class PackageManager:
         with open(self.installed_file, "w") as f:
             json.dump(self.installed, f, indent=2)
 
-    def install(self, name: str) -> bool:
+    def _check_version_requirement(self, installed_version: str, requirement: str) -> bool:
+        """Check if installed version satisfies requirement."""
+        # Simple version checking for now (can enhance later)
+        if requirement.startswith(">="):
+            required = requirement[2:].strip()
+            return installed_version >= required
+        elif requirement.startswith(">"):
+            required = requirement[1:].strip()
+            return installed_version > required
+        else:
+            # Exact version or no operator means >=
+            required = requirement.strip()
+            return installed_version >= required
+
+    def install(self, name: str, is_dependency: bool = False) -> bool:
         """
-        Install a library from the registry.
+        Install a library from the registry with dependency resolution.
 
         Args:
             name: Library name to install
+            is_dependency: Whether this is being installed as a dependency
 
         Returns:
             True if successful, False otherwise
         """
-        print(f"📦 Installing {name}...")
+        indent = "  " if is_dependency else ""
+        print(f"{indent}📦 Installing {name}...")
 
         # Get registry (remote or local)
         registry = self.registry.get_registry()
         if not registry or not registry.get("libraries"):
-            print("❌ No registry available")
+            print(f"{indent}❌ No registry available")
             return False
 
         # Check if library exists
         if name not in registry.get("libraries", {}):
-            print(f"❌ Library '{name}' not found in registry")
-            print(f"   Try: ry --search {name}")
+            print(f"{indent}❌ Library '{name}' not found in registry")
+            if not is_dependency:
+                print(f"   Try: ry --search {name}")
             return False
 
         lib_info = registry["libraries"][name]
         base_url = registry.get("base_url", self.registry.libraries_url)
+        
+        # Check if already installed with sufficient version
+        if name in self.installed:
+            installed_version = self.installed[name].get("version", "0.0.0")
+            if not is_dependency:
+                # For direct installs, always update
+                print(f"{indent}⚠️  Updating existing installation...")
+            else:
+                # For dependencies, check if version is sufficient
+                print(f"{indent}✓ {name} already installed (v{installed_version})")
+                return True
+        
+        # Install dependencies first
+        if "dependencies" in lib_info:
+            print(f"{indent}📎 Checking dependencies for {name}...")
+            for dep_name, dep_version in lib_info.get("dependencies", {}).items():
+                # Check if dependency is installed and meets version requirement
+                if dep_name in self.installed:
+                    installed_version = self.installed[dep_name].get("version", "0.0.0")
+                    if self._check_version_requirement(installed_version, dep_version):
+                        print(f"{indent}  ✓ {dep_name} {dep_version} satisfied")
+                        continue
+                
+                # Need to install/update dependency
+                print(f"{indent}  → Installing dependency: {dep_name} {dep_version}")
+                if not self.install(dep_name, is_dependency=True):
+                    print(f"{indent}❌ Failed to install dependency: {dep_name}")
+                    return False
 
         # Create library directory
         lib_dir = self.libraries_dir / name

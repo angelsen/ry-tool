@@ -2,7 +2,7 @@
 name: changelog
 version: 0.1.0
 description: Simple changelog management following Keep a Changelog format
-author: ry-tool
+author: Fredrik Angelsen
 
 features:
   - Initialize CHANGELOG.md from template
@@ -12,15 +12,19 @@ features:
 
 commands:
   - init
-  - update
-  - show
+  - bump
+  - check
+  - validate
 
 usage: |
   # Initialize a new changelog
-  ry libraries/changelog/changelog.yaml init
+  ry changelog init
   
-  # Update version (usually called by uv bump)
-  ry libraries/changelog/changelog.yaml update 1.2.3
+  # Bump version (moves [Unreleased] to version section)
+  ry changelog bump 1.2.3
   
-  # View changelog
-  ry libraries/changelog/changelog.yaml show
+  # Check if [Unreleased] has content (for pre-commit)
+  ry changelog check
+  
+  # Validate format (for CI/CD)
+  ry changelog validate

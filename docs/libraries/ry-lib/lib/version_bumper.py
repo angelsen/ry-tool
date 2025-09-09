@@ -32,61 +32,57 @@ def bump_version(version: str, bump_type: str) -> str:
 
 
 def update_changelog(lib_dir: pathlib.Path, old_version: str, new_version: str, bump_type: str):
-    """Update library's CHANGELOG.md with new version."""
+    """Update library's CHANGELOG.md with new version using changelog library."""
+    import subprocess
+    import os
+    
     changelog_file = lib_dir / "CHANGELOG.md"
     
     if not changelog_file.exists():
-        print(f"  ⚠️  No CHANGELOG.md found for {lib_dir.name}")
+        print(f"WARNING: No CHANGELOG.md found for {lib_dir.name}", file=sys.stderr)
         return
     
-    content = changelog_file.read_text()
-    today = datetime.date.today()
+    # Use the changelog library to update version
+    env = os.environ.copy()
+    env['CHANGELOG_PATH'] = str(changelog_file)
     
-    # Check if there's an [Unreleased] section
-    if '## [Unreleased]' in content:
-        # Replace [Unreleased] with the new version and date
-        content = content.replace('## [Unreleased]', f'## [{new_version}] - {today}')
-        
-        # Add a new [Unreleased] section at the top
-        lines = content.split('\n')
-        for i, line in enumerate(lines):
-            if line.startswith('## ['):
-                # Insert new Unreleased section before the first version section
-                lines.insert(i, '')
-                lines.insert(i, '### Removed')
-                lines.insert(i, '')
-                lines.insert(i, '### Fixed')
-                lines.insert(i, '')
-                lines.insert(i, '### Changed')
-                lines.insert(i, '')
-                lines.insert(i, '### Added')
-                lines.insert(i, '')
-                lines.insert(i, '## [Unreleased]')
-                break
-        content = '\n'.join(lines)
+    result = subprocess.run(
+        ['ry', 'changelog', 'update', new_version],
+        env=env,
+        capture_output=True,
+        text=True
+    )
+    
+    if result.returncode == 0:
+        print(f"  SUCCESS: Updated CHANGELOG.md", file=sys.stderr)
     else:
-        # No [Unreleased] section, just add new version
-        new_section = f"\n## [{new_version}] - {today}\n\n### Changed\n- Version bump ({bump_type})\n"
-        lines = content.split('\n')
-        insert_idx = 0
+        # Fallback to simple update if changelog library not available
+        print(f"  WARNING: Could not use changelog library, updating manually", file=sys.stderr)
+        content = changelog_file.read_text()
+        today = datetime.date.today()
         
-        for i, line in enumerate(lines):
-            if line.startswith('## ['):
-                insert_idx = i
-                break
-        
-        if insert_idx == 0:
-            # No existing version sections, add after header
+        # Simple replacement of [Unreleased] with new version
+        if '## [Unreleased]' in content:
+            content = content.replace('## [Unreleased]', f'## [{new_version}] - {today}')
+            # Add new [Unreleased] section
+            lines = content.split('\n')
+            for i, line in enumerate(lines):
+                if line.startswith('## ['):
+                    lines.insert(i, '## [Unreleased]\n')
+                    break
+            content = '\n'.join(lines)
+        else:
+            # No [Unreleased], add new version
+            new_section = f"\n## [{new_version}] - {today}\n\n### Changed\n- Version bump ({bump_type})\n"
+            lines = content.split('\n')
             for i, line in enumerate(lines):
                 if line.strip() == '':
-                    insert_idx = i
+                    lines.insert(i, new_section)
                     break
+            content = '\n'.join(lines)
         
-        lines.insert(insert_idx, new_section)
-        content = '\n'.join(lines)
-    
-    changelog_file.write_text(content)
-    print(f"  ✅ Updated CHANGELOG.md")
+        changelog_file.write_text(content)
+        print(f"  SUCCESS: Updated CHANGELOG.md (fallback)", file=sys.stderr)
 
 
 def bump_library_version(lib_name: str, bump_type: str) -> bool:
@@ -129,7 +125,7 @@ def bump_library_version(lib_name: str, bump_type: str) -> bool:
     with open(meta_file, "w") as f:
         yaml.dump(meta, f, default_flow_style=False, sort_keys=False)
     
-    print(f"✅ {lib_name}: {old_version} → {new_version}")
+    print(f"SUCCESS: {lib_name}: {old_version} → {new_version}", file=sys.stderr)
     
     # Update CHANGELOG.md if it exists
     update_changelog(lib_dir, old_version, new_version, bump_type)
@@ -151,7 +147,7 @@ def bump_library_version(lib_name: str, bump_type: str) -> bool:
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 3:
-        print("Usage: version_bumper.py <library> <patch|minor|major>")
+        print("Usage: version_bumper.py <library> <patch|minor|major>", file=sys.stderr)
         sys.exit(1)
     
     success = bump_library_version(sys.argv[1], sys.argv[2])

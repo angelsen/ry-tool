@@ -35,18 +35,19 @@ class LibraryResolver:
         Returns:
             Path to library directory or None if not a library
         """
-        # Check if path contains '/libraries/' and ends with expected pattern
-        path_parts = config_path.parts
-
-        # Look for 'libraries' in the path
-        if "libraries" in path_parts:
-            libs_index = path_parts.index("libraries")
-            # Check if next part exists (library name)
-            if libs_index + 1 < len(path_parts):
-                # Library dir is up to and including the library name
-                library_dir = Path(*path_parts[: libs_index + 2])
-                return library_dir
-
+        # Ensure we have an absolute path to work with
+        config_path = config_path.resolve()
+        
+        # Check if path contains '/libraries/' directory
+        for parent in config_path.parents:
+            if parent.name == "libraries" and parent.parent.exists():
+                # The library directory is the child of 'libraries'
+                # e.g., /path/to/libraries/my-lib/my-lib.yaml -> /path/to/libraries/my-lib
+                library_name = config_path.parent.name
+                library_dir = parent / library_name
+                if library_dir == config_path.parent:
+                    return library_dir
+                
         return None
 
     def resolve(self, name: str, args: List[str]) -> Optional[Tuple[Path, List[str]]]:
@@ -77,24 +78,24 @@ class LibraryResolver:
         # Check current directory
         local_file = Path(f"{name}.yaml")
         if local_file.exists():
-            return (local_file, args)
+            return (local_file.resolve(), args)
 
         # Check development libraries in docs (for ry-tool development)
         dev_lib = Path("docs/libraries") / name / f"{name}.yaml"
         if dev_lib.exists():
-            return (dev_lib, args)
+            return (dev_lib.resolve(), args)
 
         # Check user libraries
         if self.user_libraries.exists():
             user_lib = self.user_libraries / name / f"{name}.yaml"
             if user_lib.exists():
-                return (user_lib, args)
+                return (user_lib.resolve(), args)
 
         # Check system libraries (future)
         if self.system_libraries.exists():
             system_lib = self.system_libraries / name / f"{name}.yaml"
             if system_lib.exists():
-                return (system_lib, args)
+                return (system_lib.resolve(), args)
 
         return None
 

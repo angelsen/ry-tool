@@ -1,8 +1,17 @@
 # ry Vision
 
-## Current State: Command Platform with Libraries
+## Philosophy: Augment, Don't Replace
 
-ry has evolved from a simple command generator to a platform with a growing library ecosystem.
+ry enhances existing tools with safety, automation, and transparency - without replacing them.
+
+### Core Principle
+
+**Use real commands, get better behavior:**
+- `git commit` → adds validation and review workflow
+- `uv version --bump` → adds changelog update, atomic commit/tag
+- `uv publish` → adds safety checks and token validation
+
+Users learn the actual tools, ry just makes them safer and more powerful.
 
 ### What We Have Now
 
@@ -13,79 +22,142 @@ ry has evolved from a simple command generator to a platform with a growing libr
 - Dynamic YAML tags (`!env`, `!shell`, `!if`, etc.)
 - Capture directive for command output
 - Pipeline, parallel, and conditional execution
+- Argument consumption for intuitive parameter handling
 
-**Bundled Libraries:**
-- `libraries/git/` - Enhanced git workflows with review tokens
-- `libraries/uv/` - Package-aware version management
-- `libraries/changelog/` - Keep a Changelog format support
+**Augmentation Libraries:**
+- `docs/libraries/git/` - Git with review tokens and commit validation
+- `docs/libraries/uv/` - uv with atomic version management
+- `docs/libraries/changelog/` - Changelog automation
+- `docs/libraries/ry-lib/` - Library version management
+- `docs/libraries/site-builder/` - Static site generation
 
 ### How It Works Today
 
 ```bash
-# Using bundled libraries
-ry libraries/git/git.yaml commit "feat: new feature"
-ry libraries/uv/uv.yaml version --bump minor
-ry libraries/changelog/changelog.yaml init
+# Augmented commands via guard wrappers
+git commit -m "feat: new feature"     # Enhanced by ry
+uv version --bump minor               # Enhanced by ry
+uv build && uv publish                # Enhanced by ry
 
-# Custom workflows
-ry my-workflow.yaml deploy production
+# Direct ry libraries for new functionality
+ry ry-lib check                       # Check library versions
+ry changelog init                     # Initialize changelog
+ry site-builder generate              # Build static site
 ```
 
-## Next Phase: Community Libraries
+## The Augmentation Pattern
 
-### Package Management
+### Guard Wrappers Enable Transparent Enhancement
 ```bash
-ry --install github.com/ry-libs/docker    # Download library
-ry --list                                 # Show installed libraries
-ry --update git                           # Update library
+# ~/.local/bin/guards/git (in PATH before /usr/bin)
+#!/bin/bash
+eval "$(ry git "$@")"  # Augments git commands
+
+# When user types: git commit -m "message"
+# 1. Shell finds ~/.local/bin/guards/git first
+# 2. ry processes libraries/git/git.yaml
+# 3. Enhanced workflow executes
+# 4. Eventually calls /usr/bin/git
 ```
 
-### Library Discovery
+### Two Types of Libraries
+
+**1. Augmentation Libraries** - Enhance existing tools
+- Match real command patterns
+- Add safety checks and automation
+- Fall through to original tool
+- Examples: git, uv, docker, npm
+
+**2. Utility Libraries** - Provide new functionality
+- Don't map to existing tools
+- Offer new capabilities
+- Examples: changelog, ry-lib, site-builder
+
+## Next Phase: Registry & Distribution
+
+### Central Registry
+```bash
+ry --install git                      # Install from registry
+ry --install git@1.2.0               # Specific version
+ry --list                            # Show installed
+ry --update git                      # Update to latest
+ry --search "docker"                 # Find libraries
+```
+
+### GitHub-Based Distribution
 ```yaml
-# .ry/libraries.yaml
-libraries:
-  git:
-    source: github.com/ry-libs/git
-    version: v1.2.0
-  docker:
-    source: github.com/user/docker-workflows
-    version: main
+# https://angelsen.github.io/ry-tool/registry.json
+{
+  "libraries": {
+    "git": {
+      "version": "1.2.0",
+      "files": ["git.yaml", "lib/token.py", "meta.yaml"],
+      "author": "angelsen"
+    }
+  }
+}
 ```
 
-### Library Structure
+### Library Installation
 ```
-~/.ry/libraries/
-├── git@v1.2.0/
+~/.local/share/ry/libraries/
+├── git/                    # From registry
 │   ├── git.yaml
 │   ├── meta.yaml
 │   └── lib/
-├── docker@main/
+├── docker/                 # Community library
 │   ├── docker.yaml
 │   └── lib/
 ```
 
 ## Design Principles
 
-1. **Libraries are just YAML + scripts** - No compiled code, always readable
-2. **Version everything** - Pin to specific versions for reproducibility
-3. **Local first** - Libraries download to local filesystem
-4. **Override friendly** - Local libraries override downloaded ones
-5. **Zero magic** - You can always see what commands will run
+1. **Augment real commands** - Enhance existing tools, don't replace them
+2. **Transparent logic** - YAML + scripts, always readable
+3. **Safe by default** - Add review tokens, validation, atomic operations
+4. **Version everything** - Pin libraries for reproducibility
+5. **Local first** - Libraries download to local filesystem
+6. **Override friendly** - Local libraries override downloaded ones
+7. **Zero magic** - Always see what commands will run
+8. **Exit codes for CI** - Machine-readable results for automation
 
 ## Why This Matters
 
-Traditional CLI tools are black boxes. You run `git commit` and hope it does the right thing. With ry libraries:
+Traditional CLI tools are black boxes with scattered safety:
+- `git commit` - No validation
+- `npm publish` - Easy to accidentally publish
+- `docker push` - No safety checks
 
-- **See the logic** - Open the YAML to understand the workflow
-- **Modify locally** - Fork and customize for your needs
-- **Share improvements** - Contribute back to the community
-- **Compose workflows** - Chain libraries together
+With ry augmentation:
+- `git commit` - Requires review, validates format
+- `uv publish` - Requires build token, checks tags
+- `docker push` - Can add registry validation
+
+## The Augmentation Advantage
+
+**Tool Documentation Still Works**
+- Users read official `uv` docs
+- Commands work as documented
+- ry adds safety without changing interface
+
+**Progressive Enhancement**
+- Start with: `/usr/bin/git commit -m "msg"`
+- Enhance to: `git commit -m "msg"` (with validation)
+- Escape to: `/usr/bin/git commit -m "msg"` (if needed)
+
+**CI/CD Ready**
+```bash
+# Pre-commit hook
+ry ry-lib check | sh          # Exit 0/1 for CI
+
+# GitHub Actions  
+- run: uv version --bump minor # Augmented with ry
+- run: uv build                # Generates BUILD_TOKEN
+- run: uv publish              # Validates before publishing
+```
 
 ## End Goal
 
-Transform how we think about command-line tools:
+**Make every CLI tool safer without changing how people use them.**
 
-**Before:** Binary executables with hidden logic
-**After:** Transparent YAML workflows with community contributions
-
-Every complex CLI tool can become a simple ry library that users can read, understand, modify, and share.
+Every command becomes augmentable through ry libraries that users can read, understand, customize, and share - while keeping the original tool's interface intact.

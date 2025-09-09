@@ -55,7 +55,7 @@ if __name__ == "__main__":
     version = sys.argv[1]
     
     if update_changelog_version(changelog, version):
-        print(f"Updated CHANGELOG.md with version {version}")
+        print(f"Updated CHANGELOG.md with version {version}", file=sys.stderr)
     else:
         print("Failed to update changelog", file=sys.stderr)
         sys.exit(1)

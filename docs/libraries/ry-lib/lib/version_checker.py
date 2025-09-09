@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check if library versions need bumping based on git changes."""
 
+import sys
 import subprocess
 import pathlib
 import yaml
@@ -11,7 +12,7 @@ def get_changed_libraries() -> Set[str]:
     """Get list of libraries with staged changes."""
     try:
         result = subprocess.run(
-            ["git", "diff", "--cached", "--name-only"],
+            ["/usr/bin/git", "diff", "--cached", "--name-only"],
             capture_output=True,
             text=True,
             check=True
@@ -34,7 +35,7 @@ def get_version_changes() -> Dict[str, bool]:
     """Check which libraries had their meta.yaml version changed."""
     try:
         result = subprocess.run(
-            ["git", "diff", "--cached", "--name-only"],
+            ["/usr/bin/git", "diff", "--cached", "--name-only"],
             capture_output=True,
             text=True,
             check=True
@@ -45,7 +46,7 @@ def get_version_changes() -> Dict[str, bool]:
             if file.endswith("/meta.yaml") and file.startswith("docs/libraries/"):
                 # Check if version field was modified
                 diff_result = subprocess.run(
-                    ["git", "diff", "--cached", file],
+                    ["/usr/bin/git", "diff", "--cached", file],
                     capture_output=True,
                     text=True
                 )
@@ -64,7 +65,7 @@ def check_all_versions() -> bool:
     changed_libs = get_changed_libraries()
     
     if not changed_libs:
-        print("✅ No library changes to check")
+        print("SUCCESS: No library changes to check", file=sys.stderr)
         return True
     
     version_changes = get_version_changes()
@@ -79,13 +80,13 @@ def check_all_versions() -> bool:
             missing_bumps.append(lib)
     
     if missing_bumps:
-        print("❌ Libraries changed without version bump:")
+        print("ERROR: Libraries changed without version bump:", file=sys.stderr)
         for lib in missing_bumps:
-            print(f"  - {lib}")
-        print("\nRun: ry ry-dev bump <library> [patch|minor|major]")
+            print(f"  - {lib}", file=sys.stderr)
+        print("\nRun: ry ry-lib bump <library> [patch|minor|major]", file=sys.stderr)
         return False
     
-    print("✅ All changed libraries have version bumps")
+    print("SUCCESS: All changed libraries have version bumps", file=sys.stderr)
     return True
 
 

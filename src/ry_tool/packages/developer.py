@@ -251,11 +251,11 @@ ry docs/libraries/{name}/{name}.yaml test
         # Git operations
         try:
             # Add changes
-            subprocess.run(["git", "add", "docs/"], cwd=self.project_root, check=True)
+            subprocess.run(["/usr/bin/git", "add", "docs/"], cwd=self.project_root, check=True)
 
             # Check if there are changes
             result = subprocess.run(
-                ["git", "diff", "--cached", "--quiet"], cwd=self.project_root
+                ["/usr/bin/git", "diff", "--cached", "--quiet"], cwd=self.project_root
             )
 
             if result.returncode == 0:
@@ -264,13 +264,13 @@ ry docs/libraries/{name}/{name}.yaml test
 
             # Commit
             subprocess.run(
-                ["git", "commit", "-m", "chore: update library registry"],
+                ["/usr/bin/git", "commit", "-m", "chore: update library registry"],
                 cwd=self.project_root,
                 check=True,
             )
 
             # Push
-            subprocess.run(["git", "push"], cwd=self.project_root, check=True)
+            subprocess.run(["/usr/bin/git", "push"], cwd=self.project_root, check=True)
 
             print("✅ Published to repository")
             print("   Registry will be available at:")

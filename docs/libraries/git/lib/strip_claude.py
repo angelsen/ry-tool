@@ -29,6 +29,6 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         msg = sys.argv[1]
         cleaned = strip_signatures(msg)
-        print(cleaned)
+        print(cleaned, file=sys.stderr)
         # Exit 1 if modified (for detection)
         sys.exit(0 if cleaned == msg else 1)

@@ -32,6 +32,11 @@ class RY:
         self.context = ExecutionContext(
             config_path=config_path, args=args, library_dir=library_dir
         )
+        
+        # Set RY_LIBRARY_DIR in environment for template processing and subprocesses
+        if library_dir:
+            import os
+            os.environ['RY_LIBRARY_DIR'] = str(library_dir.absolute())
 
         self.config = self._load_config()
 

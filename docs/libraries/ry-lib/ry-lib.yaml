@@ -1,0 +1,166 @@
+# ry-lib library for ry
+# Version management and development tools for ry libraries
+
+match:
+  # Check if library versions need bumping
+  check-versions:
+    - python: |
+        import sys
+        import pathlib
+        import subprocess
+        import os
+        
+        lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
+        sys.path.insert(0, str(lib_path))
+        from version_checker import check_all_versions
+        
+        if not check_all_versions():
+            sys.exit(1)
+  
+  # Bump version of a specific library
+  # Usage: ry ry-lib bump <library> <patch|minor|major>
+  bump:
+    - python: |
+        import sys
+        import pathlib
+        import os
+        
+        lib_name = "{{args.0|}}"
+        bump_type = "{{args.1|patch}}"
+        
+        if not lib_name:
+            print("ERROR: Library name required", file=sys.stderr)
+            print("  Usage: ry ry-lib bump <library> [patch|minor|major]", file=sys.stderr)
+            sys.exit(1)
+        
+        lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
+        sys.path.insert(0, str(lib_path))
+        from version_bumper import bump_library_version
+        
+        if not bump_library_version(lib_name, bump_type):
+            sys.exit(1)
+  
+  # Install git hooks for version checking
+  install-hooks:
+    - shell: |
+        # Install pre-commit hook
+        cat > .git/hooks/pre-commit << 'EOF'
+        #!/bin/bash
+        # Check if library versions need bumping
+        echo "Checking library versions..."
+        if ! ry ry-lib check-versions; then
+            echo "ERROR: Library files changed but version not bumped!"
+            echo "  Run: ry ry-lib bump <library> [patch|minor|major]"
+            exit 1
+        fi
+        EOF
+        chmod +x .git/hooks/pre-commit
+        echo "SUCCESS: Installed pre-commit hook for version checking" >&2
+  
+  # List all library versions
+  list:
+    - python: |
+        import pathlib
+        import yaml
+        import os
+        
+        docs_dir = pathlib.Path(os.getcwd()) / "docs" / "libraries"
+        if not docs_dir.exists():
+            print("ERROR: No docs/libraries directory found", file=sys.stderr)
+            sys.exit(1)
+        
+        print("Library Versions:", file=sys.stderr)
+        for lib_dir in sorted(docs_dir.iterdir()):
+            if lib_dir.is_dir():
+                meta_file = lib_dir / "meta.yaml"
+                if meta_file.exists():
+                    with open(meta_file) as f:
+                        meta = yaml.safe_load(f)
+                        version = meta.get("version", "unknown")
+                        print(f"  {lib_dir.name:20} {version}")
+  
+  # Initialize new library (was --dev-new)
+  init:
+    - shell: |
+        lib_name="{{args.0|}}"
+        if [ -z "$lib_name" ]; then
+            echo "ERROR: Library name required" >&2
+            echo "  Usage: ry ry-lib init <library>" >&2
+            exit 1
+        fi
+        bash "{{env.RY_LIBRARY_DIR}}/lib/create_library.sh" "$lib_name"
+  
+  # Validate all library YAML files (was --dev-check)
+  validate:
+    - python: |
+        import sys
+        import yaml
+        from pathlib import Path
+        
+        libs_dir = Path("docs/libraries")
+        if not libs_dir.exists():
+            print("ERROR: No docs/libraries directory", file=sys.stderr)
+            sys.exit(1)
+        
+        print("INFO: Checking all libraries...", file=sys.stderr)
+        all_valid = True
+        
+        for lib_dir in sorted(libs_dir.iterdir()):
+            if not lib_dir.is_dir():
+                continue
+            
+            yaml_file = lib_dir / f"{lib_dir.name}.yaml"
+            if not yaml_file.exists():
+                print(f"  ERROR: {lib_dir.name}: Missing {lib_dir.name}.yaml", file=sys.stderr)
+                all_valid = False
+                continue
+            
+            try:
+                with open(yaml_file) as f:
+                    yaml.safe_load(f)
+                print(f"  SUCCESS: {lib_dir.name}: Valid", file=sys.stderr)
+            except Exception as e:
+                print(f"  ERROR: {lib_dir.name}: Invalid YAML - {e}", file=sys.stderr)
+                all_valid = False
+        
+        if not all_valid:
+            sys.exit(1)
+  
+  # Update registry.json (self-contained)
+  registry:
+    - shell: python3 "{{env.RY_LIBRARY_DIR}}/lib/update_registry.py"
+  
+  # Update registry and push (self-contained)
+  publish:
+    - shell: |
+        echo "INFO: Updating registry..." >&2
+        python3 "{{env.RY_LIBRARY_DIR}}/lib/update_registry.py" || exit 1
+        
+        echo "📤 Publishing changes..."
+        /usr/bin/git add docs/
+        if /usr/bin/git diff --cached --quiet; then
+            echo "INFO: No changes to publish" >&2
+            exit 0
+        fi
+        
+        /usr/bin/git commit -m "chore: update library registry"
+        /usr/bin/git push
+        echo "SUCCESS: Published to repository" >&2
+  
+  test:
+    - shell: 'echo "SUCCESS: ry-lib library is working!" >&2'
+  
+  version:
+    - shell: 'echo "ry-lib version 0.2.0"'
+  
+  default:
+    - shell: 'echo "Usage: ry ry-lib <command>" >&2'
+    - shell: 'echo "Commands:" >&2'
+    - shell: 'echo "  init <library>   - Initialize new library template" >&2'
+    - shell: 'echo "  validate         - Validate all library YAML files" >&2'
+    - shell: 'echo "  registry         - Update registry.json" >&2'
+    - shell: 'echo "  publish          - Update registry and push to git" >&2'
+    - shell: 'echo "  check-versions   - Check if changed libraries have version bumps" >&2'
+    - shell: 'echo "  bump <lib> <type> - Bump library version (patch/minor/major)" >&2'
+    - shell: 'echo "  install-hooks    - Install git hooks for version checking" >&2'
+    - shell: 'echo "  list            - List all library versions" >&2'

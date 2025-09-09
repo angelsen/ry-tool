@@ -15,20 +15,6 @@
       "version": "0.1.0",
       "author": "angelsen"
     },
-    "ry-dev": {
-      "files": [
-        "CHANGELOG.md",
-        "README.md",
-        "lib/version_bumper.py",
-        "lib/version_checker.py",
-        "meta.yaml",
-        "ry-dev.yaml"
-      ],
-      "entry": "ry-dev.yaml",
-      "description": "Version management and development tools for ry libraries",
-      "version": "0.1.0",
-      "author": "ry-tool"
-    },
     "uv": {
       "files": [
         "CHANGELOG.md",
@@ -54,6 +40,23 @@
       "description": "Simple changelog management following Keep a Changelog format",
       "version": "0.1.0",
       "author": "ry-tool"
+    },
+    "ry-lib": {
+      "files": [
+        "CHANGELOG.md",
+        "README.md",
+        "lib/version_bumper.py",
+        "lib/version_checker.py",
+        "meta.yaml",
+        "ry-lib.yaml"
+      ],
+      "entry": "ry-lib.yaml",
+      "description": "Library version management for ry",
+      "version": "0.2.0",
+      "author": "ry-tool",
+      "dependencies": {
+        "changelog": ">=0.1.0"
+      }
     },
     "git": {
       "files": [

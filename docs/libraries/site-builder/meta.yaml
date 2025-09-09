@@ -1,4 +1,4 @@
-# Metadata for site-builder library
+name: site-builder
 description: "Static site generator for project registries"
-author: "angelsen"
+author: Fredrik Angelsen
 version: "0.1.0"

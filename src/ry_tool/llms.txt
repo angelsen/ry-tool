@@ -1,7 +1,7 @@
 # ry - YAML Command Orchestrator
 
 ## Overview
-Pure YAML-to-shell command generator. Never executes, only generates commands for piping.
+Tool augmentation system via YAML-to-shell command generation. Never executes, only generates commands for piping. Core philosophy: "Augment, don't replace."
 
 ## Key Concepts
 - YAML structures: steps, pipeline, parallel, match
@@ -10,17 +10,24 @@ Pure YAML-to-shell command generator. Never executes, only generates commands fo
 - Output: Always generates shell commands to stdout
 
 ## Architecture
-- loader.py: YAML with dynamic tags (!env, !shell, !if)
+- loader.py: YAML with dynamic tags (!env, !shell, !if, !eval, !include)
 - generator.py: Orchestrates transformation
 - normalizer.py: YAML → canonical {"executor": "python", "script": "..."}
 - template.py: {{var|default}} substitution
 - executors/: Language-specific compilation (python -c, sh -c)
+- packages/: Library management (install, registry, dependencies)
 
 ## Usage Examples
 ```bash
+# Direct usage
 ry config.yaml | sh           # Execute
 ry config.yaml arg1 arg2      # With arguments
 ry config.yaml > script.sh    # Save commands
+
+# Library usage (after installation)
+ry --install git              # Install library
+git commit -m "feat: new"     # Use augmented command
+ry git status                 # Or call via ry
 ```
 
 ## YAML Examples
@@ -59,8 +66,20 @@ class RubyExecutor(Executor):
         return f"ruby -e {shlex.quote(script)}"
 ```
 
+## Libraries
+Located in docs/libraries/, each library contains:
+- library.yaml: Main command definitions with match patterns
+- meta.yaml: Metadata (name, version, author, dependencies)
+- lib/: Helper scripts (Python/shell)
+- README.md, CHANGELOG.md: Documentation
+
+Augmentation libraries (git, uv): Use {{env.RY_TOOL|/usr/bin/tool}} pattern
+Utility libraries (changelog, ry-lib): Direct tool invocation
+
 ## Design Rules
 - Single responsibility per file
 - No execution, only generation
 - Use shlex.quote() for safe escaping
 - Templates use {{}} to avoid conflicts
+- Libraries use /usr/bin/tool to prevent recursion
+- Augmentation allows bypass via environment variables

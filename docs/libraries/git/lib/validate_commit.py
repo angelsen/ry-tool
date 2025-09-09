@@ -67,5 +67,5 @@ if __name__ == "__main__":
         if not valid:
             print(f"ERROR: {error}", file=sys.stderr)
             sys.exit(1)
-        print("OK")
+        print("OK", file=sys.stderr)
         sys.exit(0)

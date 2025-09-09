@@ -98,6 +98,97 @@ match:
   status:
     - shell: "{{env.RY_GIT|/usr/bin/git}} status {{args.all|}}"
   
+  tag:
+    # Enhanced tag with changelog integration
+    - python: |
+        import sys
+        import subprocess
+        import os
+        from pathlib import Path
+        
+        # Get tag name from args
+        tag_name = "{{args.0|}}"
+        if not tag_name:
+            # No tag name provided, list tags
+            subprocess.run(["{{env.RY_GIT|/usr/bin/git}}", "tag", "{{args.all|}}"])
+            sys.exit(0)
+        
+        # Extract version from tag name (v1.2.0 -> 1.2.0)
+        version = tag_name[1:] if tag_name.startswith('v') else tag_name
+        
+        # Check if this looks like a version tag
+        import re
+        if not re.match(r'^\d+\.\d+\.\d+', version):
+            # Not a version tag, pass through
+            print(f"INFO: Non-version tag, skipping changelog integration", file=sys.stderr)
+            sys.exit(0)
+        
+        # Check if CHANGELOG.md exists
+        if Path("CHANGELOG.md").exists():
+            print(f"INFO: Updating changelog for version {version}...", file=sys.stderr)
+            
+            # Try to bump changelog
+            result = subprocess.run(
+                ["ry", "changelog", "bump", version],
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0:
+                # Changelog updated successfully, commit it
+                subprocess.run(["{{env.RY_GIT|/usr/bin/git}}", "add", "CHANGELOG.md"], check=True)
+                subprocess.run(
+                    ["{{env.RY_GIT|/usr/bin/git}}", "commit", "-m", f"chore: update changelog for {tag_name}"],
+                    check=True
+                )
+                print(f"SUCCESS: Changelog updated and committed", file=sys.stderr)
+            else:
+                print(f"WARNING: Could not update changelog", file=sys.stderr)
+                print(f"  {result.stderr.strip()}", file=sys.stderr)
+        else:
+            print(f"INFO: No CHANGELOG.md found, creating tag without changelog", file=sys.stderr)
+    
+    # Create the actual tag
+    - shell: |
+        TAG_NAME="{{args.0|}}"
+        
+        # Skip if no tag name (already handled above)
+        if [ -z "$TAG_NAME" ]; then
+            exit 0
+        fi
+        
+        # Check if -m flag is present
+        HAS_MESSAGE=false
+        MESSAGE=""
+        SKIP_NEXT=false
+        
+        for arg in {{args.all|}}; do
+            if [ "$SKIP_NEXT" = "true" ]; then
+                MESSAGE="$arg"
+                SKIP_NEXT=false
+                continue
+            fi
+            
+            if [ "$arg" = "-m" ]; then
+                HAS_MESSAGE=true
+                SKIP_NEXT=true
+            fi
+        done
+        
+        if [ "$HAS_MESSAGE" = "true" ] && [ -n "$MESSAGE" ]; then
+            # User provided message
+            {{env.RY_GIT|/usr/bin/git}} tag "$TAG_NAME" -m "$MESSAGE"
+        else
+            # Auto-annotate with release message
+            {{env.RY_GIT|/usr/bin/git}} tag "$TAG_NAME" -m "Release $TAG_NAME"
+            echo "INFO: Created annotated tag with message: Release $TAG_NAME" >&2
+        fi
+        
+        echo "SUCCESS: Tagged as $TAG_NAME" >&2
+        echo "" >&2
+        echo "Next steps:" >&2
+        echo "  git push origin $TAG_NAME" >&2
+  
   push:
     # Check if on main/master
     - shell: |

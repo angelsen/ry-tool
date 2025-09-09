@@ -365,7 +365,7 @@ def main():
     output_path = docs_dir / "index.html"
     output_path.write_text(html)
     
-    print(f"Generated: {output_path}")
+    print(f"Generated: {output_path}", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -5,11 +5,26 @@
 
 The `match` block is for routing to the right workflow based on command patterns. The actual logic lives in the workflow steps where it's visible and debuggable.
 
+## Library Types
+
+### Augmentation Libraries
+Enhance existing commands without changing their interface:
+- Examples: `git`, `uv`, `docker`, `npm`
+- Use `{{env.RY_TOOL|/usr/bin/tool}}` pattern
+- Default case should pass through: `default: - shell: "{{env.RY_TOOL|/usr/bin/tool}} {{args.all}}"`
+- Only augment existing commands, never add new ones
+
+### Utility Libraries  
+Provide new functionality that doesn't map to existing tools:
+- Examples: `changelog`, `ry-lib`, `site-builder`
+- Default case should show help text
+- Can define any commands needed
+
 ## File Structure
 
 ```yaml
 # library-name.yaml - One-line description
-# Usage: ry libraries/library-name/library-name.yaml <command> [args...]
+# Usage: ry library-name <command> [args...]  # Note: no path needed
 
 match:
   "command --flag":    # Multi-word patterns for specific cases
@@ -18,11 +33,30 @@ match:
   command:             # Single word patterns for general cases
     - steps...
   
-  default:             # Fallback with help text
+  default:             # Fallback - pass through OR help text
     - shell: |
         echo "Usage: ry library-name <command>" >&2
         echo "Commands:" >&2
         echo "  command1  - Description" >&2
+```
+
+### Meta.yaml Structure
+```yaml
+name: library-name
+version: 0.1.0
+description: One-line description of the library
+author: Your Name
+dependencies:  # Optional
+  other-library: ">=0.1.0"
+features:      # Optional, for documentation
+  - Feature one
+  - Feature two
+commands:      # List of commands provided
+  - init
+  - build
+usage: |       # Examples for users
+  # Initialize project
+  ry library-name init
 ```
 
 ## Pattern Matching Rules
@@ -156,24 +190,31 @@ match:
 
 ## Library Conventions
 
-### 1. CRITICAL: Use Absolute Paths for Commands
-**Always use absolute paths** like `/usr/bin/git` or `/usr/bin/uv` when calling system commands.
+### 1. CRITICAL: Use Environment Variables for Augmented Commands
+For augmentation libraries, **always use environment variables with fallback** to allow bypass:
 
 ```yaml
-# WRONG - can cause infinite recursion if user has wrapper scripts
-- shell: git status
-- shell: uv version
-- python: subprocess.run(["python", "script.py"])
+# CORRECT - for augmentation libraries (git, uv, etc.)
+- shell: "{{env.RY_GIT|/usr/bin/git}} status"
+- shell: "{{env.RY_UV|/usr/bin/uv}} version"
+- python: subprocess.run(["{{env.RY_GIT|/usr/bin/git}}", "add", "file.py"])
 
-# CORRECT - always use absolute paths
-- shell: /usr/bin/git status  
-- shell: /usr/bin/uv version
-- python: subprocess.run(["/usr/bin/python3", "script.py"])
+# WRONG - hardcoded paths don't allow bypass
+- shell: /usr/bin/git status
+- shell: git status  # Can cause infinite recursion
 ```
 
-This prevents:
-- Infinite recursion when users have wrapper scripts (like `~/bin/git` that calls `ry git`)
-- Issues with wrappers that don't handle stdin properly (common with Python wrappers)
+This pattern:
+- Allows users to set `RY_GIT=/usr/bin/git` to bypass augmentation
+- Falls back to `/usr/bin/git` if not set
+- Prevents infinite recursion when users have wrapper scripts
+
+For non-augmented tools, use absolute paths directly:
+```yaml
+# For tools we don't augment
+- shell: /usr/bin/python3 script.py
+- shell: /usr/bin/cat file.txt
+```
 
 ### 2. Git Operations
 - Check clean working directory before version changes
@@ -186,22 +227,26 @@ This prevents:
 - Update CHANGELOG.md automatically
 - Sync dependencies after version changes
 
-### 4. User Feedback
+### 4. User Feedback - ALWAYS to stderr
 ```yaml
-# Success messages to stderr (consistent prefix style)
+# Shell - always redirect to stderr with >&2
 echo "SUCCESS: Task completed" >&2
-echo "SUCCESS: Built project in 2.3s" >&2
-
-# Errors with actionable next steps
 echo "ERROR: Description" >&2
-echo "  Run: ry tool fix" >&2
-
-# Warnings for non-fatal issues
 echo "WARNING: Description" >&2
-echo "  This might cause issues" >&2
-
-# Info messages for progress
 echo "INFO: Starting build process" >&2
+
+# Python - always use file=sys.stderr
+print("SUCCESS: Task completed", file=sys.stderr)
+print("ERROR: Description", file=sys.stderr)
+print("WARNING: Description", file=sys.stderr)
+print("INFO: Starting build process", file=sys.stderr)
+
+# Errors should include actionable next steps
+echo "ERROR: No CHANGELOG.md found" >&2
+echo "  Run: ry changelog init" >&2
+
+# Success messages should be concise
+echo "SUCCESS: Bumped version to 1.2.0" >&2
 ```
 
 ### 5. Path References
@@ -333,16 +378,16 @@ match:
     fi
 ```
 
-❌ **Using Unicode symbols**
+❌ **Missing stderr redirect**
 ```yaml
-# Bad: Not portable across all terminals
-echo "✓ Done" >&2
-echo "✗ Failed" >&2
+# Bad: Success/error messages to stdout
+print("SUCCESS: Done")
+echo "ERROR: Failed"
 ```
 
-✅ **Better: Consistent prefix style**
+✅ **Better: All feedback to stderr**
 ```yaml
-echo "SUCCESS: Done" >&2
+print("SUCCESS: Done", file=sys.stderr)
 echo "ERROR: Failed" >&2
 ```
 
@@ -366,7 +411,8 @@ Use consistent prefixes for all output to stderr:
 - `WARNING:` - Non-fatal issue, operation continues
 - `INFO:` - General information or progress
 - `DEBUG:` - Detailed diagnostic information (when verbose)
-- `FAIL:` - Validation or check failed (shorter alternative to ERROR)
+
+Avoid Unicode symbols (✓, ✗, ✅, ❌) for better terminal compatibility.
 
 ## Summary
 

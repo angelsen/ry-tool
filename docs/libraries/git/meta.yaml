@@ -1,15 +1,25 @@
 name: git
 version: 0.1.1
-description: Enhanced git workflow with conventional commits
+description: Enhanced git workflow with conventional commits and changelog integration
 author: Fredrik Angelsen
-requires:
-- git
+dependencies:
 provides:
 - commit validation
 - AI signature stripping
 - push protection for main/master
-usage: 'ry libraries/git/git.yaml add .
-
-  ry libraries/git/git.yaml commit "feat: add new feature"
-
-  ry libraries/git/git.yaml push'
+- automatic changelog updates on version tags
+usage: |
+  # Add files
+  git add .
+  
+  # Commit with validation
+  git diff --stat --staged
+  REVIEW_TOKEN=xxx git commit -m "feat: add new feature"
+  
+  # Tag with automatic changelog
+  git tag v1.2.0
+  git tag v1.2.0 -m "Custom release message"
+  
+  # Push changes
+  git push origin main
+  git push origin v1.2.0
