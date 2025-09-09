@@ -66,9 +66,9 @@ match:
           echo "  Run: ry site-builder init" >&2
           exit 1
         fi
-    # Use $RY_LIBRARY_DIR to reference library files
-    - shell: python $RY_LIBRARY_DIR/lib/build.py
-    - shell: echo "SUCCESS: Generated docs/index.html" >&2
+    
+    - shell: "python $RY_LIBRARY_DIR/lib/build.py"
+    - shell: 'echo "SUCCESS: Generated docs/index.html" >&2'
   
   preview:
     - shell: |

@@ -31,6 +31,7 @@ For each library, determine:
 - [ ] All echo statements include `>&2`
 - [ ] No Unicode symbols (✅, ❌, ✓, ✗)
 - [ ] Consistent PREFIX: format (SUCCESS:, ERROR:, WARNING:, INFO:)
+- [ ] Shell commands with colons are properly quoted (e.g., `- shell: 'echo "ERROR: Failed"'`)
 
 **Pattern checks for augmentation libraries (git, uv)**:
 - [ ] Uses `{{env.RY_TOOL|/usr/bin/tool}}` pattern in YAML

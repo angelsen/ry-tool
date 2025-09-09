@@ -80,7 +80,21 @@ git config user.name  # WRONG - could hit wrapper
 
 **Key Rule**: Only augmentation library YAMLs use `{{env.RY_TOOL|...}}`. Everything else must use `/usr/bin/tool`.
 
-### 4. Meta.yaml Structure
+### 4. YAML Syntax Safety
+**Shell commands with colons must be quoted**:
+```yaml
+# WRONG - colon in string breaks YAML
+- shell: echo "ERROR: Failed" >&2
+- shell: echo "SUCCESS: Done" >&2
+
+# CORRECT - quote the entire value
+- shell: 'echo "ERROR: Failed" >&2'
+- shell: 'echo "SUCCESS: Done" >&2'
+- shell: |
+    echo "ERROR: Failed" >&2  # Multi-line strings are safe
+```
+
+### 5. Meta.yaml Structure
 Required fields:
 ```yaml
 name: library-name
@@ -91,7 +105,7 @@ dependencies:  # Optional but must be accurate
   other-lib: ">=X.Y.Z"
 ```
 
-### 5. Command Consistency
+### 6. Command Consistency
 - Commands in meta.yaml must match actual patterns in library.yaml
 - Help text in default case must list all available commands
 - Usage examples should use `ry library-name command` format
