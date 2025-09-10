@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Complete migration from ry-next to ry naming**
+  - Renamed all internal references from ry-next back to ry
+  - Updated all library YAML files and documentation
+  - Fixed wrapper scripts in ~/.local/bin/guards/
+  - Consolidated documentation structure
+  - Removed redundant README files (README_PROJECT.md, docs/README_RYNEXT.md)
+  - Added comprehensive ARCHITECTURE.md documentation
+  - Added release-workflow command for automated releases
+  - This completes the transition from experimental ry-next to production ry
+
 ## [1.2.1] - 2025-09-11
 
 ### Changed
