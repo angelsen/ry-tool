@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **BREAKING**: Complete migration to ry-next as primary tool
+  - Removed old 'ry' command entry point
+  - Archived old ry_tool implementation
+  - src/ry_next/ renamed to src/ry_tool/ (to match package name)
+- Restructured project for cleaner organization
+  - Libraries moved to docs/libraries/ for badge builder
+  - Examples cleaned up and consolidated
+  - Old documentation archived to _archive/
+- Updated all wrappers and paths to new structure
+
 ## [0.4.0] - 2025-09-10
 
 ### Added
