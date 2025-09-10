@@ -7,21 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Removed
-- **BREAKING**: Removed all `--dev-*` commands in favor of `ry-lib` library
-  - `--dev-new` → `ry ry-lib init`
-  - `--dev-check` → `ry ry-lib validate`
-  - `--dev-registry` → `ry ry-lib registry`
-  - `--dev-publish` → `ry ry-lib publish`
-- Deleted `developer.py` module - all functionality now in `ry-lib` library
-
 ### Added
+- **ry-next**: Complete rewrite with clean architecture
+  - Modular design with single-responsibility components
+  - No backward compatibility - clean API design
+  - Type-safe recursive template processing
+  - Direct subprocess execution without shell escaping
+  - Context factory pattern for centralized logic
+  - Error handling decorators and command builder utilities
+- Shared utilities base class (`utils.py`) for library modules
+  - `LibraryBase` for common library operations
+  - `CommandBuilder` for subprocess execution
+  - `FileManager` for YAML/JSON operations
+  - `VersionManager` for semantic versioning
+- 4 production-ready libraries in v2.0 format:
+  - `git`: Enhanced workflow with review tokens and commit validation
+  - `uv`: Python package management with automated workflows
+  - `changelog`: Simple changelog management
+  - `ry-lib`: Library development and management tools
+- Token-based safety system for dangerous operations
+- Library installation and management (`--install`, `--uninstall`)
+- Environment variable setup for library execution
+- 3 clean example libraries demonstrating core patterns
 
 ### Changed
+- **BREAKING**: All library modules now require direct class instantiation
+  - No convenience wrapper functions
+  - `process_recursive()` replaces `process_dict/process_list`
+  - `CommandBuilder().run_git()` instead of `run_git()`
+- Libraries moved to `docs_next/libraries/` for v2.0 format
+- Examples reorganized under `docs_next/examples/`
+- Documentation consolidated under `docs_next/ry-next/`
 
 ### Fixed
+- Fixed `git add` command missing `relay: native` directive
+- Dataclass boilerplate using `field(default_factory)`
+- Template processing with proper type dispatch
 
 ### Removed
+- **BREAKING**: All backward compatibility code removed
+- Convenience wrapper functions in library modules
+- Redundant documentation files (HANDOFF_RYNEXT.md, outdated examples)
+- `process_dict()` and `process_list()` methods (use `process_recursive()`)
 
 ## [0.3.1] - 2025-09-09
 
