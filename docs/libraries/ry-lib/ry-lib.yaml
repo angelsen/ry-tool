@@ -19,9 +19,6 @@ commands:
     
     execute:
       - python: |
-          import sys
-          import os
-          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
           from create_library import create_library
           
           success = create_library(
@@ -48,9 +45,6 @@ commands:
       - when: flags.library
         execute:
           - python: |
-              import sys
-              import os
-              sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
               from validate_library import validate_library
               
               success = validate_library(flags['library'], flags.get('verbose', False))
@@ -59,9 +53,6 @@ commands:
       - when: flags.all
         execute:
           - python: |
-              import sys
-              import os
-              sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
               from validate_library import validate_all
               
               success = validate_all(flags.get('verbose', False))
@@ -85,9 +76,6 @@ commands:
     
     execute:
       - python: |
-          import sys
-          import os
-          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
           from version_manager import bump_version
           
           success = bump_version(
@@ -109,9 +97,6 @@ commands:
     
     execute:
       - python: |
-          import sys
-          import os
-          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
           from registry_builder import list_libraries
           
           success = list_libraries(
@@ -129,16 +114,12 @@ commands:
     
     execute:
       - python: |
-          import sys
-          import os
-          
           if flags.get('hook'):
               print("# Add to .git/hooks/pre-commit:")
               print("#!/bin/bash")
               print("ry-next ry-lib check-versions || exit 1")
               sys.exit(0)
           
-          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
           from version_manager import check_version_changes
           
           success = check_version_changes()
@@ -157,9 +138,6 @@ commands:
     
     execute:
       - python: |
-          import sys
-          import os
-          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
           from registry_builder import build_registry
           
           success = build_registry(
@@ -184,9 +162,6 @@ commands:
           echo "📋 Updating registry..."
       
       - python: |
-          import sys
-          import os
-          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
           from registry_builder import build_registry
           
           if not build_registry(pretty=True):
@@ -207,3 +182,96 @@ commands:
           else
               echo "ℹ️  No changes to publish"
           fi
+
+  project:
+    description: Manage project.yaml manifest
+    arguments:
+      action:
+        type: enum
+        values: [init, sync, validate, show]
+        required: true
+        description: Action to perform
+    
+    handlers:
+      - when: "arguments.get('action') == 'init'"
+        execute:
+          - python: |
+              from pathlib import Path
+              from project_manager import ProjectManager
+              
+              # Check if already exists
+              if Path('project.yaml').exists() and not flags.get('force'):
+                  print("❌ project.yaml already exists", file=sys.stderr)
+                  print("   Use --force to overwrite", file=sys.stderr)
+                  sys.exit(1)
+              
+              pm = ProjectManager()
+              if pm.init_project(force=flags.get('force', False)):
+                  print("✅ Created project.yaml", file=sys.stderr)
+                  print("   Edit to customize metadata", file=sys.stderr)
+                  print("   Build site with: ry-next site-builder build", file=sys.stderr)
+              else:
+                  sys.exit(1)
+      
+      - when: "arguments.get('action') == 'sync'"
+        execute:
+          - python: |
+              from pathlib import Path
+              from project_manager import ProjectManager
+              
+              if not Path('project.yaml').exists():
+                  print("❌ project.yaml not found", file=sys.stderr)
+                  print("   Run: ry-next ry-lib project init", file=sys.stderr)
+                  sys.exit(1)
+              
+              pm = ProjectManager()
+              try:
+                  changes = pm.sync_project()
+                  if changes:
+                      for change in changes:
+                          print(f"📝 {change}", file=sys.stderr)
+                      print("✅ project.yaml updated", file=sys.stderr)
+                  else:
+                      print("✅ project.yaml is up to date", file=sys.stderr)
+              except Exception as e:
+                  print(f"❌ Error: {e}", file=sys.stderr)
+                  sys.exit(1)
+      
+      - when: "arguments.get('action') == 'validate'"
+        execute:
+          - python: |
+              from pathlib import Path
+              from project_manager import ProjectManager
+              
+              if not Path('project.yaml').exists():
+                  print("❌ project.yaml not found", file=sys.stderr)
+                  print("   Run: ry-next ry-lib project init", file=sys.stderr)
+                  sys.exit(1)
+              
+              pm = ProjectManager()
+              valid, errors = pm.validate_project()
+              if valid:
+                  print("✅ project.yaml is valid", file=sys.stderr)
+              else:
+                  for error in errors:
+                      print(f"❌ {error}", file=sys.stderr)
+                  sys.exit(1)
+      
+      - when: "arguments.get('action') == 'show'"
+        execute:
+          - python: |
+              from pathlib import Path
+              from project_manager import ProjectManager
+              
+              if not Path('project.yaml').exists():
+                  print("❌ project.yaml not found", file=sys.stderr)
+                  print("   Run: ry-next ry-lib project init", file=sys.stderr)
+                  sys.exit(1)
+              
+              pm = ProjectManager()
+              try:
+                  project = pm.show_project()
+                  print(yaml.dump(project, default_flow_style=False, sort_keys=False))
+              except Exception as e:
+                  print(f"❌ Error: {e}", file=sys.stderr)
+                  sys.exit(1)

@@ -25,9 +25,6 @@ commands:
         augment:
           before:
             - python: |
-                import sys
-                import os
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
                 from version_workflow import check_git_clean, check_changelog_exists, get_current_version
                 
                 # Check git status
@@ -54,18 +51,13 @@ commands:
           
           after:
             - python: |
-                import sys
-                import os
-                
                 # Generate token for actual bump
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], '..', 'git', 'lib'))
                 from token_manager import TokenManager
                 
                 package = flags.get('package')
                 bump_type = flags.get('bump', 'patch')
                 
                 # Get the new version from uv's output (it was just shown)
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
                 from version_workflow import get_current_version
                 version, package_name = get_current_version(package)
                 
@@ -87,9 +79,8 @@ commands:
           before:
             - python: |
                 import sys
-                import os
-                
                 # Check for bump token
+                import os
                 token = os.environ.get('BUMP_TOKEN', '')
                 
                 if not token:
@@ -104,7 +95,6 @@ commands:
                     print(f"   Then use the BUMP_TOKEN provided", file=sys.stderr)
                     sys.exit(1)
                 
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], '..', 'git', 'lib'))
                 from token_manager import TokenManager
                 
                 tm = TokenManager("uv")
@@ -116,7 +106,6 @@ commands:
                 print("✅ Bump token verified", file=sys.stderr)
                 
                 # Check git clean
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
                 from version_workflow import check_git_clean
                 
                 if not check_git_clean():
@@ -134,11 +123,8 @@ commands:
           
           after:
             - python: |
-                import sys
-                import os
                 import subprocess
                 
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
                 from version_workflow import (
                     get_current_version, check_changelog_exists, 
                     release_changelog, commit_version_bump
@@ -147,7 +133,7 @@ commands:
                 # Get the new version after bump
                 package = flags.get('package')
                 new_version, package_name = get_current_version(package)
-                old_version = os.environ.get('RY_OLD_VERSION', '0.0.0')
+                old_version = env.get('RY_OLD_VERSION', '0.0.0')
                 
                 print(f"📦 Bumped {package_name}: {old_version} → {new_version}", file=sys.stderr)
                 
@@ -255,9 +241,6 @@ commands:
         augment:
           before:
             - python: |
-                import sys
-                import os
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
                 from version_workflow import check_publish_requirements
                 
                 # Get package from flags if specified
@@ -272,7 +255,7 @@ commands:
                 print("✅ Ready to publish", file=sys.stderr)
                 
                 # Check for PyPI token - try pass if not in env
-                if not os.environ.get('UV_PUBLISH_TOKEN'):
+                if not env.get('UV_PUBLISH_TOKEN'):
                     import subprocess
                     result = subprocess.run(['pass', 'pypi/uv-publish'], 
                                           capture_output=True, text=True)
@@ -287,11 +270,7 @@ commands:
           
           after:
             - python: |
-                import sys
-                import os
-                
                 # Generate publish token
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], '..', 'git', 'lib'))
                 from token_manager import TokenManager
                 
                 tm = TokenManager("uv")
@@ -315,9 +294,8 @@ commands:
           before:
             - python: |
                 import sys
-                import os
-                
                 # Check for publish token
+                import os
                 token = os.environ.get('PUBLISH_TOKEN', '')
                 
                 if not token:
@@ -326,7 +304,6 @@ commands:
                     print("   Then use the PUBLISH_TOKEN provided", file=sys.stderr)
                     sys.exit(1)
                 
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], '..', 'git', 'lib'))
                 from token_manager import TokenManager
                 
                 tm = TokenManager("uv")
@@ -338,7 +315,7 @@ commands:
                 print("✅ Publish token verified", file=sys.stderr)
                 
                 # Ensure PyPI token is set - try pass if not in env
-                if not os.environ.get('UV_PUBLISH_TOKEN'):
+                if not env.get('UV_PUBLISH_TOKEN'):
                     import subprocess
                     # Try to get from pass
                     result = subprocess.run(['pass', 'pypi/uv-publish'], 

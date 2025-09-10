@@ -1,0 +1,9 @@
+name: site-builder
+version: 0.1.0
+description: Static site generator from project.yaml manifests
+author: Fredrik Angelsen
+tags:
+  - documentation
+  - static-site
+  - generator
+  - html

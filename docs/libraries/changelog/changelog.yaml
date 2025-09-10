@@ -13,9 +13,6 @@ commands:
     
     execute:
       - python: |
-          import sys
-          import os
-          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
           from changelog_core import init_changelog
           
           success = init_changelog(flags.get('name'))
@@ -34,9 +31,6 @@ commands:
     
     execute:
       - python: |
-          import sys
-          import os
-          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
           from changelog_core import release_version
           
           success = release_version(
@@ -50,9 +44,6 @@ commands:
     
     execute:
       - python: |
-          import sys
-          import os
-          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
           from changelog_core import validate_changelog
           
           success = validate_changelog()
@@ -71,7 +62,6 @@ commands:
     execute:
       - python: |
           from pathlib import Path
-          import sys
           
           changelog = Path('CHANGELOG.md')
           if not changelog.exists():

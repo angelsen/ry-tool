@@ -9,9 +9,12 @@ import subprocess
 import sys
 import os
 import json
+import yaml
 from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 from io import StringIO
+from pathlib import Path
+import ry_tool.utils  # Import ry_tool modules
 
 
 @dataclass
@@ -59,17 +62,19 @@ class Executor:
         Returns:
             ExecutionResult
         """
-        # Merge environment
-        env = step.get('env', {})
+        # Merge environment - extra_env takes precedence
+        env = {}
         if extra_env:
             env.update(extra_env)
+        if step.get('env'):
+            env.update(step['env'])
         
         if 'shell' in step:
             return self.execute_shell(step['shell'], env, 
                                     interactive=step.get('interactive', False),
                                     capture_file=step.get('_capture_file'))
         elif 'python' in step:
-            return self.execute_python(step['python'])
+            return self.execute_python(step['python'], extra_env=env)
         elif 'subprocess' in step:
             return self.execute_subprocess(step['subprocess'])
         elif 'ruby' in step:
@@ -203,7 +208,7 @@ class Executor:
                 returncode=1
             )
     
-    def execute_python(self, code: str) -> ExecutionResult:
+    def execute_python(self, code: str, extra_env: Dict[str, str] = None) -> ExecutionResult:
         """
         Execute Python code with context.
         
@@ -230,15 +235,45 @@ class Executor:
         original_env = safe_copy(self.context.get('env'), {})
         original_captured = safe_copy(self.context.get('captured'), {})
         
+        # Set up Python path from environment
+        # This allows library code to import from lib/ directories
+        if extra_env and 'PYTHONPATH' in extra_env:
+            for path in extra_env['PYTHONPATH'].split(':'):
+                if path and path not in sys.path:
+                    sys.path.insert(0, path)
+        
+        # Also add library directory if provided
+        if extra_env and 'RY_LIBRARY_DIR' in extra_env:
+            lib_path = os.path.join(extra_env['RY_LIBRARY_DIR'], 'lib')
+            if os.path.exists(lib_path) and lib_path not in sys.path:
+                sys.path.insert(0, lib_path)
+            
+            # Add all sibling library lib/ directories for cross-library imports
+            # This allows e.g., uv library to import from git library
+            libraries_root = os.path.dirname(extra_env['RY_LIBRARY_DIR'])
+            if os.path.exists(libraries_root):
+                for item in os.listdir(libraries_root):
+                    sibling_lib = os.path.join(libraries_root, item, 'lib')
+                    if os.path.isdir(sibling_lib) and sibling_lib not in sys.path:
+                        sys.path.insert(0, sibling_lib)
+        
+        # Merge environment variables into env dict
+        merged_env = safe_copy(self.context.get('env'), {})
+        if extra_env:
+            merged_env.update(extra_env)
+        
         # Prepare execution environment with mutable references
         exec_globals = {
             'sys': sys,
             'os': os,
             'subprocess': subprocess,
             'json': json,
+            'yaml': yaml,
+            'Path': Path,
+            'ry_tool': ry_tool,  # Make ry_tool module available
             'flags': safe_copy(self.context.get('flags'), {}),
             'arguments': safe_copy(self.context.get('arguments'), {}),
-            'env': safe_copy(self.context.get('env'), {}),
+            'env': merged_env,
             'captured': safe_copy(self.context.get('captured'), {}),
             'remaining_args': self.context.get('remaining_args', []),
             'positionals': safe_copy(self.context.get('positionals'), []),

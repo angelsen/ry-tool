@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ry-tool</title>
-    <meta name="description" content="Pure YAML command orchestrator - CI/CD for humans">
-    <meta property="og:title" content="ry-tool">
-    <meta property="og:description" content="Pure YAML command orchestrator - CI/CD for humans">
+    <title><!-- TITLE --></title>
+    <meta name="description" content="<!-- DESCRIPTION -->">
+    <meta property="og:title" content="<!-- TITLE -->">
+    <meta property="og:description" content="<!-- DESCRIPTION -->">
     
     <style>
         :root {
@@ -286,177 +286,24 @@
         }
     </style>
 </head>
-<body class="minimal">
+<body class="<!-- THEME_CLASS -->">
     <div class="container">
         <header>
-            <h1>ry-tool</h1>
-<p class="description">Pure YAML command orchestrator - CI/CD for humans</p>
-<span class="version">v1.0.1</span>
+            <!-- HEADER -->
         </header>
         
         <nav>
-            <ul><li><a href="#libraries">Libraries</a></li> <li><a href="#documentation">Documentation</a></li> <li><a href="https://github.com/angelsen/ry-tool">GitHub</a></li></ul>
+            <!-- NAVIGATION -->
         </nav>
         
-        <section class="installation">
-<h2>Installation</h2>
-<div class="tab-buttons">
-<button class="tab-btn active" data-tab="install-0">uv</button>
-<button class="tab-btn " data-tab="install-1">pip</button>
-</div>
-<div class="tab-content active" id="install-0">
-<pre><code>uv add ry-tool</code></pre>
-</div>
-<div class="tab-content " id="install-1">
-<pre><code>pip install ry-tool</code></pre>
-</div>
-</section>
+        <!-- INSTALLATION -->
         
         <main>
-            <section id="libraries">
-<h2>Libraries</h2>
-<div class="library-grid">
-<div class="library-card">
-<span class="version">0.1.0</span>
-<h3>changelog</h3>
-<p>Simple changelog initialization and release management</p>
-<div class="commands">
-<span class="command">init</span>
-<span class="command">release</span>
-<span class="command">validate</span>
-<span class="command">show</span>
-</div>
-</div>
-<div class="library-card">
-<span class="version">0.1.0</span>
-<h3>git</h3>
-<p>Git workflow with review tokens and commit validation</p>
-<div class="commands">
-<span class="command">diff</span>
-<span class="command">commit</span>
-<span class="command">tag</span>
-<span class="command">push</span>
-<span class="command">add</span>
-</div>
-</div>
-<div class="library-card">
-<span class="version">1.0.0</span>
-<h3>ry-lib</h3>
-<p>Library development and management for ry-next</p>
-<div class="commands">
-<span class="command">init</span>
-<span class="command">validate</span>
-<span class="command">bump</span>
-<span class="command">list</span>
-<span class="command">check-versions</span>
-<span class="command">+3 more</span>
-</div>
-</div>
-<div class="library-card">
-<span class="version">0.1.0</span>
-<h3>site-builder</h3>
-<p>Static site generator from project.yaml manifests</p>
-<div class="commands">
-<span class="command">build</span>
-<span class="command">clean</span>
-</div>
-</div>
-<div class="library-card">
-<span class="version">0.1.0</span>
-<h3>uv</h3>
-<p>Python package management with automated version workflows</p>
-<div class="commands">
-<span class="command">version</span>
-<span class="command">build</span>
-<span class="command">publish</span>
-</div>
-</div>
-</div>
-</section>
-<section id="documentation">
-<h2>Documentation</h2>
-<p>A clean, modular command augmentation framework that enhances existing CLI tools without breaking their native behavior.</p>
-<h3>Features</h3>
-<p>- **Command Augmentation**: Wrap and enhance existing CLI tools</p>
-<p>- **Clean Architecture**: Modular design with single-responsibility components  </p>
-<p>- **Type-Safe Processing**: Recursive template processing with type dispatch</p>
-<p>- **Token-Based Safety**: Time-limited tokens for dangerous operations</p>
-<p>- **Library System**: Reusable command definitions with metadata</p>
-<p>- **No Shell Escaping**: Direct subprocess execution for safety</p>
-<h3>Installation</h3>
-<pre><code>
-pip install -e .
-</code></pre>
-<p>This installs the <code>ry-next</code> command globally.</p>
-<h3>Quick Start</h3>
-<pre><code>
-# List available libraries
-ry-next --list
-
-# Get help for a library
-ry-next git --ry-help
-
-# Execute augmented command
-ry-next git commit -m "feat: new feature"
-
-# Show execution plan (dry run)
-ry-next --ry-run git commit -m "test"
-</code></pre>
-<h3>Production Libraries</h3>
-<p>- **git** - Enhanced git workflow with review tokens and commit validation</p>
-<p>- **uv** - Python package management with automated version workflows</p>
-<p>- **changelog** - Simple changelog management following Keep a Changelog</p>
-<p>- **ry-lib** - Library development and management tools</p>
-<h3>Documentation</h3>
-<p>- [Full Documentation](docs/README_RYNEXT.md)</p>
-<p>- [Library Development](docs/libraries/ry-lib/README.md)</p>
-<p>- [Examples](examples/README.md)</p>
-<h3>Project Structure</h3>
-<pre><code>
-ry-next/
-├── src/ry_next/         # Core implementation
-├── docs/
-│   ├── libraries/       # Production libraries
-│   └── README_RYNEXT.md # Full documentation
-├── examples/            # Example libraries
-└── _archive/            # Old ry-tool code (deprecated)
-</code></pre>
-<h3>Key Concepts</h3>
-<h4>Library Format (v2.0)</h4>
-<pre><code>
-version: "2.0"
-name: git
-type: augmentation
-target: /usr/bin/git
-
-commands:
-  commit:
-    flags:
-      m/message: string
-    augment:
-      before:
-        - python: |
-            # Validation logic
-      relay: native
-</code></pre>
-<h4>Token-Based Safety</h4>
-<p>Critical operations require preview and token verification:</p>
-<pre><code>
-# Preview changes
-git diff --staged  # → Generates REVIEW_TOKEN
-
-# Execute with token
-REVIEW_TOKEN=xxx git commit -m "message"
-</code></pre>
-<h3>Development</h3>
-<p>See [docs/README_RYNEXT.md](docs/README_RYNEXT.md) for complete documentation.</p>
-<h3>License</h3>
-<p>MIT</p>
-</section>
+            <!-- CONTENT -->
         </main>
         
         <footer>
-            <a href="https://github.com/angelsen/ry-tool">View on GitHub</a> | Generated with ry-next site-builder
+            <!-- FOOTER -->
         </footer>
     </div>
     

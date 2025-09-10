@@ -12,12 +12,8 @@ commands:
     augment:
       after:
         - python: |
-            import sys
-            import os
-            
             # Only generate tokens for staged diff
             if flags.get('staged') or flags.get('cached'):
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
                 from token_manager import generate_review_token, TokenManager
                 
                 # Generate regular commit token
@@ -47,9 +43,8 @@ commands:
           before:
             - python: |
                 import sys
-                import os
-                
                 # Check for amend token
+                import os
                 token = os.environ.get('AMEND_TOKEN', '')
                 
                 if not token:
@@ -57,7 +52,6 @@ commands:
                     print("   Run: git diff --staged", file=sys.stderr)
                     sys.exit(1)
                 
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
                 from token_manager import TokenManager
                 
                 tm = TokenManager("git-amend")
@@ -70,12 +64,8 @@ commands:
             
             # If message provided, validate it
             - python: |
-                import sys
-                import os
-                
                 message = flags.get('m')
                 if message:
-                    sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
                     from commit_validator import process_commit_message
                     
                     cleaned, warnings = process_commit_message(message)
@@ -106,7 +96,6 @@ commands:
             - python: |
                 import sys
                 import os
-                
                 token = os.environ.get('REVIEW_TOKEN', '')
                 
                 if not token:
@@ -115,7 +104,6 @@ commands:
                     print("   Then: REVIEW_TOKEN=<token> git commit -m 'message'", file=sys.stderr)
                     sys.exit(1)
                 
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
                 from token_manager import verify_review_token
                 
                 if not verify_review_token(token):
@@ -127,12 +115,8 @@ commands:
             
             # Validate and clean commit message
             - python: |
-                import sys
-                import os
-                
                 message = flags.get('m', '')
                 
-                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
                 from commit_validator import process_commit_message
                 
                 cleaned, warnings = process_commit_message(message)
@@ -172,8 +156,6 @@ commands:
         augment:
           before:
             - python: |
-                import sys
-                import os
                 import re
                 import subprocess
                 from pathlib import Path

@@ -1,0 +1,70 @@
+version: "2.0"
+name: site-builder
+type: library
+description: Static site generator from project.yaml manifests
+
+commands:
+  build:
+    description: Generate static site from project.yaml
+    flags:
+      config:
+        type: string
+        default: project.yaml
+        description: Path to project manifest
+      output:
+        type: string  
+        default: docs
+        description: Output directory
+      theme:
+        type: enum
+        values: [minimal, terminal]
+        default: minimal
+        description: Site theme
+    
+    execute:
+      - python: |
+          from pathlib import Path
+          from builder import SiteBuilder
+          
+          config_file = flags.get('config', 'project.yaml')
+          if not Path(config_file).exists():
+              print(f"❌ {config_file} not found", file=sys.stderr)
+              print("   Run: ry-next ry-lib project init", file=sys.stderr)
+              sys.exit(1)
+          
+          builder = SiteBuilder()
+          theme = flags.get('theme', 'minimal')
+          output = flags.get('output', 'docs')
+          
+          print(f"📦 Building site from {config_file}...", file=sys.stderr)
+          try:
+              builder.build(config_file, output, theme)
+              print(f"✅ Site generated in {output}/index.html", file=sys.stderr)
+              full_path = Path(output).resolve() / 'index.html'
+              print(f"   Open in browser: file://{full_path}", file=sys.stderr)
+          except Exception as e:
+              print(f"❌ Build failed: {e}", file=sys.stderr)
+              sys.exit(1)
+  
+  clean:
+    description: Remove generated site files
+    flags:
+      directory:
+        type: string
+        default: docs
+        description: Directory to clean
+    
+    execute:
+      - python: |
+          from pathlib import Path
+          
+          directory = Path(flags.get('directory', 'docs'))
+          
+          # Only remove index.html (preserve other docs)
+          index_file = directory / 'index.html'
+          
+          if index_file.exists():
+              index_file.unlink()
+              print(f"✅ Removed {index_file}", file=sys.stderr)
+          else:
+              print(f"ℹ️  No generated files to clean", file=sys.stderr)

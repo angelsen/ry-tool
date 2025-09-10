@@ -1,0 +1,40 @@
+schema: '1.0'
+project:
+  name: ry-tool
+  type: library-collection
+  description: Pure YAML command orchestrator - CI/CD for humans
+  version: 1.0.1
+  license: MIT
+maintainers:
+- name: Fredrik Angelsen
+  email: fredrikangelsen@gmail.com
+installation:
+  primary: uv
+  methods:
+  - tool: uv
+    command: uv add ry-tool
+  - tool: pip
+    command: pip install ry-tool
+source:
+  repository: https://github.com/angelsen/ry-tool
+  homepage: https://github.com/angelsen/ry-tool
+  issues: https://github.com/angelsen/ry-tool/issues
+content:
+  libraries:
+    path: docs/libraries
+    count: 5
+    registry: docs/registry.json
+  documentation:
+    readme: README.md
+    changelog: CHANGELOG.md
+    examples: examples/
+  package:
+    manifest: pyproject.toml
+    source: src/
+site:
+  theme: terminal
+  accent: '#00ff00'
+  features:
+  - search
+  - copy-buttons
+  - dark-mode

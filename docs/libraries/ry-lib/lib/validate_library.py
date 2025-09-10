@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 """Validate ry-next library structure and content."""
 
-import sys
 from pathlib import Path
-
-# Add src/ry_next to path for utils
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'src' / 'ry_next'))
-from utils import LibraryBase, handle_errors
+from ry_tool.utils import LibraryBase, handle_errors
 
 
 class LibraryValidator(LibraryBase):

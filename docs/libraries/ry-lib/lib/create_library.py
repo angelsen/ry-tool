@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """Create a new ry-next library with proper structure."""
 
-import sys
 import os
 from pathlib import Path
-
-# Add src/ry_next to path for utils
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / 'src' / 'ry_next'))
-from utils import LibraryBase, validate_name, get_current_datetime, get_current_date
+from ry_tool.utils import LibraryBase, validate_name, get_current_datetime, get_current_date
 
 
 class LibraryCreator(LibraryBase):
