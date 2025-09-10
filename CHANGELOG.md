@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-09-10
+
 ### Fixed
 - Fixed argument parsing for augmentation libraries to preserve exact user input
   - Numeric flags like `-10` are no longer incorrectly converted to `--10`
