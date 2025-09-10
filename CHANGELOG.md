@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2025-09-11
+
 ### Changed
 - **OUTPUT_STYLE_GUIDE.md updated to v2.0** - ASCII-only prefixes for maximum compatibility
   - Replaced emoji prefixes (✅ ❌ 📦 etc.) with ASCII prefixes (SUCCESS: ERROR: BUILD: etc.)
