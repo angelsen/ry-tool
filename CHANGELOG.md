@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-09-10
+
 ### Changed
 - **BREAKING**: Complete migration to ry-next as primary tool
   - Removed old 'ry' command entry point
