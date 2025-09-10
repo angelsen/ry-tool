@@ -1,28 +1,26 @@
 # git
 
-A ry library for git operations.
+Git library for ry-next
 
 ## Installation
 
 ```bash
-ry --install git
+ry-next --install git
 ```
 
 ## Usage
 
 ```bash
-ry git test        # Test the library
-ry git version     # Show version
-```
-
-## Development
-
-To test locally:
-```bash
-ry docs/libraries/git/git.yaml test
+ry-next git --ry-help
 ```
 
 ## Commands
 
-- `test`: Verify library is working
-- `version`: Display library version
+See `git.yaml` for available commands.
+
+## Development
+
+This library was created with ry-lib:
+```bash
+ry-next ry-lib init git --type augmentation
+```

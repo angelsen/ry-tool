@@ -1,25 +1,6 @@
 name: uv
-version: 0.1.4
-description: Enhanced uv operations with git integration
-author: Fredrik Angelsen
-dependencies:
-  changelog: '>=0.1.0'
-features:
-- Automatic changelog updates on version bump
-- Atomic git operations (commit + tag, but not push)
-- Lockfile synchronization
-- Clean git state validation
-commands:
-- version --bump
-- publish
-- build
-usage: '# Enhanced version bumping
-
-  uv version --bump minor
-
-
-  # Regular uv commands pass through
-
-  uv add requests
-
-  uv sync'
+version: 0.1.0
+description: Uv library for ry-next
+author: fredrik
+created: '2025-09-10T10:05:54.412596'
+updated: '2025-09-10'

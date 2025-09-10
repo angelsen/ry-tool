@@ -1,334 +1,361 @@
-# uv.yaml - Enhanced uv operations with git integration
-# Usage: ry uv <command> [args...]
+version: "2.0"
+name: uv
+type: augmentation
+target: /usr/bin/uv
+description: Python package management with automated version workflows
 
-match:
-  "version --bump":
-    # Pre-flight checks
-    - shell: |
-        # Check git clean
-        if [ -n "$({{env.RY_GIT|/usr/bin/git}} status --porcelain)" ]; then
-            echo "ERROR: Working directory not clean" >&2
-            echo "  Commit or stash changes first" >&2
-            exit 1
-        fi
-        
-        # Check version sync if CHANGELOG exists
-        if [ -f "CHANGELOG.md" ]; then
-            CURRENT_VERSION=$({{env.RY_UV|/usr/bin/uv}} version --output-format json | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
-            LAST_CHANGELOG=$(ry changelog last-version 2>/dev/null | sh)
-            
-            if [ $? -eq 0 ] && [ "$CURRENT_VERSION" != "$LAST_CHANGELOG" ]; then
-                echo "WARNING: Version mismatch detected" >&2
-                echo "  pyproject.toml: $CURRENT_VERSION" >&2
-                echo "  CHANGELOG.md:   $LAST_CHANGELOG" >&2
-                echo "  This will be fixed during bump" >&2
-            fi
-        fi
-        
-        # Detect changelog location based on --package flag
-        CHANGELOG="CHANGELOG.md"
-        if echo "{{args.all}}" | grep -q -- "--package"; then
-            PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
-            if [ -f "packages/$PACKAGE/CHANGELOG.md" ]; then
-                CHANGELOG="packages/$PACKAGE/CHANGELOG.md"
-            fi
-        fi
-        
-        if [ ! -f "$CHANGELOG" ]; then
-            echo "ERROR: No $CHANGELOG found" >&2
-            echo "  Run: ry changelog init" >&2
-            echo "  Then update the [Unreleased] section with your changes" >&2
-            exit 1
-        fi
-    
-    # Get current state (handles --package automatically)
-    - shell: |
-        # Extract --package flag if present for version query
-        PACKAGE_FLAG=""
-        if echo "{{args.all}}" | grep -q -- "--package"; then
-            PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
-            PACKAGE_FLAG="--package $PACKAGE"
-        fi
-        {{env.RY_UV|/usr/bin/uv}} version $PACKAGE_FLAG --output-format json
-      capture: OLD_INFO
-    
-    # Execute the bump
-    - shell: "{{env.RY_UV|/usr/bin/uv}} {{args.all}}"
-      capture: UV_OUTPUT
-    
-    # Get new state
-    - shell: |
-        # Extract --package flag if present for version query
-        PACKAGE_FLAG=""
-        if echo "{{args.all}}" | grep -q -- "--package"; then
-            PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
-            PACKAGE_FLAG="--package $PACKAGE"
-        fi
-        {{env.RY_UV|/usr/bin/uv}} version $PACKAGE_FLAG --output-format json
-      capture: NEW_INFO
-    
-    # Process the change
-    - shell: |
-        # Extract version info
-        OLD_VERSION=$(echo "$OLD_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
-        NEW_VERSION=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
-        PACKAGE_NAME=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['package_name'])")
-        
-        # Detect changelog location
-        CHANGELOG="CHANGELOG.md"
-        if echo "{{args.all}}" | grep -q -- "--package"; then
-            PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
-            if [ -f "packages/$PACKAGE/CHANGELOG.md" ]; then
-                CHANGELOG="packages/$PACKAGE/CHANGELOG.md"
-            fi
-        fi
-        
-        # Update changelog if available
-        if [ -f "$CHANGELOG" ] && command -v ry >/dev/null 2>&1; then
-            echo "INFO: Updating $CHANGELOG" >&2
-            ry changelog bump "$NEW_VERSION" 2>/dev/null || true
-        fi
-        
-        # Sync dependencies
-        echo "INFO: Syncing dependencies" >&2
-        {{env.RY_UV|/usr/bin/uv}} sync --quiet
-        
-        # Git operations (atomic with version bump)
-        {{env.RY_GIT|/usr/bin/git}} add -A
-        {{env.RY_GIT|/usr/bin/git}} commit -m "chore(${PACKAGE_NAME}): bump version from ${OLD_VERSION} to ${NEW_VERSION}"
-        
-        # Tag with package name
-        TAG_NAME="${PACKAGE_NAME}-v${NEW_VERSION}"
-        {{env.RY_GIT|/usr/bin/git}} tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
-        
-        # Success feedback
-        echo "SUCCESS: Bumped ${PACKAGE_NAME}: ${OLD_VERSION} -> ${NEW_VERSION}" >&2
-        echo "SUCCESS: Committed and tagged as ${TAG_NAME}" >&2
-        echo "INFO: Next steps:" >&2
-        echo "  git push origin main" >&2
-        echo "  git push origin ${TAG_NAME}" >&2
-        
-        # Show original uv output
-        echo "$UV_OUTPUT"
-
-  "--ry-version":
-    # Show library version
-    - shell: echo "{{library_name}} version {{library_version}}"
-  
+commands:
+  # Version management with token-based workflow
   version:
-    # Handle both "version" (show) and "version X.Y.Z" (set) for native uv
-    - shell: |
-        # Check if we're setting a version (have additional args beyond "version")
-        # This handles: version 1.2.3, version --package foo 1.2.3
-        HAS_VERSION_ARG=false
-        for arg in {{args.all}}; do
-            case "$arg" in
-                version|--bump|--package|--output-format|--json|--short|--dry-run) ;;
-                *) HAS_VERSION_ARG=true; break ;;
-            esac
-        done
-        
-        if [ "$HAS_VERSION_ARG" = "true" ]; then
-            # Setting version - need git workflow
-            
-            # Pre-flight checks
-            if [ -n "$({{env.RY_GIT|/usr/bin/git}} status --porcelain)" ]; then
-                echo "ERROR: Working directory not clean" >&2
-                echo "  Commit or stash changes first" >&2
-                exit 1
-            fi
-            
-            # Extract --package flag if present
-            PACKAGE_FLAG=""
-            if echo "{{args.all}}" | grep -q -- "--package"; then
-                PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
-                PACKAGE_FLAG="--package $PACKAGE"
-            fi
-            
-            # Get current version
-            OLD_INFO=$({{env.RY_UV|/usr/bin/uv}} version $PACKAGE_FLAG --output-format json)
-            OLD_VERSION=$(echo "$OLD_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
-            
-            # Set new version
-            UV_OUTPUT=$({{env.RY_UV|/usr/bin/uv}} version {{args.all}})
-            
-            # Get new version
-            NEW_INFO=$({{env.RY_UV|/usr/bin/uv}} version $PACKAGE_FLAG --output-format json)
-            NEW_VERSION=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['version'])")
-            PACKAGE_NAME=$(echo "$NEW_INFO" | python3 -c "import sys, json; print(json.load(sys.stdin)['package_name'])")
-            
-            # If version didn't change, just show output
-            if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
-                echo "$UV_OUTPUT"
-                exit 0
-            fi
-            
-            # Version changed - do git workflow
-            echo "INFO: Version changed from ${OLD_VERSION} to ${NEW_VERSION}" >&2
-            
-            # Detect changelog location
-            CHANGELOG="CHANGELOG.md"
-            if [ -n "$PACKAGE_FLAG" ] && [ -f "packages/$PACKAGE/CHANGELOG.md" ]; then
-                CHANGELOG="packages/$PACKAGE/CHANGELOG.md"
-            fi
-            
-            # Update changelog if available
-            if [ -f "$CHANGELOG" ] && command -v ry >/dev/null 2>&1; then
-                echo "INFO: Updating $CHANGELOG" >&2
-                ry changelog bump "$NEW_VERSION" 2>/dev/null || true
-            fi
-            
-            # Sync dependencies
-            echo "INFO: Syncing dependencies" >&2
-            {{env.RY_UV|/usr/bin/uv}} sync --quiet
-            
-            # Git operations (atomic with version set)
-            {{env.RY_GIT|/usr/bin/git}} add -A
-            
-            # Appropriate commit message
-            if [ "$OLD_VERSION" = "0.0.0" ] || [ -z "$({{env.RY_GIT|/usr/bin/git}} tag -l)" ]; then
-                {{env.RY_GIT|/usr/bin/git}} commit -m "chore(${PACKAGE_NAME}): initial version ${NEW_VERSION}"
-            else
-                {{env.RY_GIT|/usr/bin/git}} commit -m "chore(${PACKAGE_NAME}): set version from ${OLD_VERSION} to ${NEW_VERSION}"
-            fi
-            
-            # Tag with package name
-            TAG_NAME="${PACKAGE_NAME}-v${NEW_VERSION}"
-            {{env.RY_GIT|/usr/bin/git}} tag "${TAG_NAME}" -m "Release ${PACKAGE_NAME} v${NEW_VERSION}"
-            
-            echo "SUCCESS: Set ${PACKAGE_NAME}: ${OLD_VERSION} -> ${NEW_VERSION}" >&2
-            echo "SUCCESS: Committed and tagged as ${TAG_NAME}" >&2
-            echo "INFO: Next steps:" >&2
-            echo "  git push origin main" >&2
-            echo "  git push origin ${TAG_NAME}" >&2
-            
-            # Show original output
-            echo "$UV_OUTPUT"
-        else
-            # Just showing version
-            {{env.RY_UV|/usr/bin/uv}} version {{args.all}}
-        fi
-  
-  publish:
-    # Pre-flight checks
-    - shell: |
-        # Check for dist files
-        DIST_FILES="{{args.all|dist/*}}"
-        if ! ls $DIST_FILES >/dev/null 2>&1; then
-            echo "ERROR: No dist files found at: $DIST_FILES" >&2
-            echo "  Build first: uv build" >&2
-            exit 1
-        fi
-        
-        # Extract package and version from wheel or sdist
-        PACKAGE=""
-        VERSION=""
-        for file in $DIST_FILES; do
-            if [[ "$file" == *.whl ]]; then
-                # Extract from wheel: package_name-version-py3-none-any.whl
-                BASENAME=$(basename "$file")
-                PACKAGE=$(echo "$BASENAME" | cut -d'-' -f1)
-                VERSION=$(echo "$BASENAME" | cut -d'-' -f2)
-                break
-            elif [[ "$file" == *.tar.gz ]]; then
-                # Extract from sdist: package_name-version.tar.gz
-                BASENAME=$(basename "$file" .tar.gz)
-                PACKAGE=$(echo "$BASENAME" | rev | cut -d'-' -f2- | rev)
-                VERSION=$(echo "$BASENAME" | rev | cut -d'-' -f1 | rev)
-                break
-            fi
-        done
-        
-        if [ -z "$PACKAGE" ] || [ -z "$VERSION" ]; then
-            echo "ERROR: Could not determine package name and version from dist files" >&2
-            exit 1
-        fi
-        
-        # Check if version is tagged
-        TAG="${PACKAGE}-v${VERSION}"
-        if ! {{env.RY_GIT|/usr/bin/git}} tag -l "$TAG" | grep -q .; then
-            echo "ERROR: Version $VERSION is not tagged" >&2
-            echo "  Expected tag: $TAG" >&2
-            echo "  Tag it: git tag $TAG" >&2
-            echo "  Or bump: uv version --bump patch" >&2
-            exit 1
-        fi
-        
-        # Check if tag is pushed to remote
-        if ! {{env.RY_GIT|/usr/bin/git}} ls-remote --tags origin | grep -q "refs/tags/$TAG"; then
-            echo "ERROR: Tag $TAG exists locally but not on origin" >&2
-            echo "  Push tag: git push origin $TAG" >&2
-            exit 1
-        fi
-        
-        # Check for token
-        if [ -z "$UV_PUBLISH_TOKEN" ]; then
-            # Try to get from pass
-            if command -v pass >/dev/null 2>&1 && pass pypi/token >/dev/null 2>&1; then
-                export UV_PUBLISH_TOKEN=$(pass pypi/token)
-                echo "INFO: Token loaded from pass" >&2
-            else
-                echo "ERROR: No UV_PUBLISH_TOKEN set" >&2
-                echo "  Set: export UV_PUBLISH_TOKEN=pypi-..." >&2
-                echo "  Or store: pass insert pypi/token" >&2
-                exit 1
-            fi
-        fi
-        
-        # Warn about dry-run for safety
-        if ! echo "{{args.all}}" | grep -q -- "--dry-run"; then
-            echo "WARNING: Publishing without --dry-run" >&2
-            echo "  Consider: uv publish --dry-run $DIST_FILES" >&2
-        fi
+    description: Version management with automated git workflow
+    arguments:
+      version: optional
+    flags:
+      bump:
+        type: enum
+        values: [major, minor, patch, stable, alpha, beta, rc, post, dev]
+        description: Bump version type
+      package: 
+        type: string
+        description: Package name for workspace
     
-    # Run publish
-    - shell: |
-        echo "INFO: Publishing to PyPI" >&2
-        {{env.RY_UV|/usr/bin/uv}} {{args.all}}
-  
+    handlers:
+      # Dry-run mode - preview changes and generate token
+      - when: "flags.get('bump') and flags.get('dry-run')"
+        augment:
+          before:
+            - python: |
+                import sys
+                import os
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+                from version_workflow import check_git_clean, check_changelog_exists, get_current_version
+                
+                # Check git status
+                if not check_git_clean():
+                    print("❌ Working directory not clean", file=sys.stderr)
+                    print("   Commit or stash changes first", file=sys.stderr)
+                    sys.exit(1)
+                
+                # Get package info for display
+                package = flags.get('package')
+                version, package_name = get_current_version(package)
+                bump_type = flags.get('bump', 'patch')
+                
+                print(f"📦 Preview: {package_name} version bump ({bump_type})", file=sys.stderr)
+                
+                # Check for changelog
+                changelog = check_changelog_exists(package)
+                if changelog:
+                    print(f"📝 Will update: {changelog}", file=sys.stderr)
+                else:
+                    print("⚠️  No CHANGELOG.md found", file=sys.stderr)
+          
+          relay: native  # Let uv show "0.1.0 => 0.1.1"
+          
+          after:
+            - python: |
+                import sys
+                import os
+                
+                # Generate token for actual bump
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], '..', 'git', 'lib'))
+                from token_manager import TokenManager
+                
+                package = flags.get('package')
+                bump_type = flags.get('bump', 'patch')
+                
+                # Get the new version from uv's output (it was just shown)
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+                from version_workflow import get_current_version
+                version, package_name = get_current_version(package)
+                
+                tm = TokenManager("uv")
+                token, expires = tm.generate_token(f"bump {package_name} {bump_type}")
+                
+                print(f"\n📋 BUMP_TOKEN={token}", file=sys.stderr)
+                print(f"   Expires in {expires} seconds", file=sys.stderr)
+                
+                # Build the command without --dry-run
+                cmd_parts = ['BUMP_TOKEN=' + token, 'uv', 'version', '--bump', bump_type]
+                if package:
+                    cmd_parts.extend(['--package', package])
+                print(f"   Use: {' '.join(cmd_parts)}", file=sys.stderr)
+      
+      # Actual bump - require token and execute full workflow
+      - when: "flags.get('bump') and not flags.get('dry-run')"
+        augment:
+          before:
+            - python: |
+                import sys
+                import os
+                
+                # Check for bump token
+                token = os.environ.get('BUMP_TOKEN', '')
+                
+                if not token:
+                    print("❌ Preview version changes first", file=sys.stderr)
+                    bump_type = flags.get('bump', 'patch')
+                    package = flags.get('package')
+                    
+                    cmd_parts = ['uv', 'version', '--bump', bump_type, '--dry-run']
+                    if package:
+                        cmd_parts.extend(['--package', package])
+                    print(f"   Run: {' '.join(cmd_parts)}", file=sys.stderr)
+                    print(f"   Then use the BUMP_TOKEN provided", file=sys.stderr)
+                    sys.exit(1)
+                
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], '..', 'git', 'lib'))
+                from token_manager import TokenManager
+                
+                tm = TokenManager("uv")
+                if not tm.verify_token(token):
+                    print("❌ Invalid or expired token", file=sys.stderr)
+                    print("   Run with --dry-run first to get a new token", file=sys.stderr)
+                    sys.exit(1)
+                
+                print("✅ Bump token verified", file=sys.stderr)
+                
+                # Check git clean
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+                from version_workflow import check_git_clean
+                
+                if not check_git_clean():
+                    print("❌ Working directory not clean", file=sys.stderr)
+                    sys.exit(1)
+                
+                # Store old version for later
+                from version_workflow import get_current_version
+                package = flags.get('package')
+                old_version, package_name = get_current_version(package)
+                os.environ['RY_OLD_VERSION'] = old_version
+                os.environ['RY_PACKAGE_NAME'] = package_name
+          
+          relay: native  # Execute the actual bump
+          
+          after:
+            - python: |
+                import sys
+                import os
+                import subprocess
+                
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+                from version_workflow import (
+                    get_current_version, check_changelog_exists, 
+                    release_changelog, commit_version_bump
+                )
+                
+                # Get the new version after bump
+                package = flags.get('package')
+                new_version, package_name = get_current_version(package)
+                old_version = os.environ.get('RY_OLD_VERSION', '0.0.0')
+                
+                print(f"📦 Bumped {package_name}: {old_version} → {new_version}", file=sys.stderr)
+                
+                # Update changelog if exists
+                changelog = check_changelog_exists(package)
+                if changelog:
+                    if release_changelog(new_version, changelog):
+                        print(f"📝 Updated changelog for {new_version}", file=sys.stderr)
+                    else:
+                        print(f"⚠️  Could not update changelog", file=sys.stderr)
+                
+                # Sync dependencies
+                print("🔄 Syncing dependencies...", file=sys.stderr)
+                subprocess.run(['/usr/bin/uv', 'sync', '--quiet'], check=False)
+                
+                # Commit and tag
+                commit_version_bump(package_name, old_version, new_version)
+      
+      # Set specific version (less common, but supported)
+      - when: arguments.version
+        augment:
+          before:
+            - python: |
+                import sys
+                import subprocess
+                
+                # Check git clean
+                result = subprocess.run(['/usr/bin/git', 'status', '--porcelain'], 
+                                      capture_output=True, text=True)
+                if result.stdout.strip():
+                    print("❌ Working directory not clean", file=sys.stderr)
+                    sys.exit(1)
+          
+          relay: native
+          
+          after:
+            - python: |
+                import sys
+                import subprocess
+                from pathlib import Path
+                
+                # Get new version info
+                cmd = ['/usr/bin/uv', 'version', '--output-format', 'json']
+                if flags.get('package'):
+                    cmd.extend(['--package', flags['package']])
+                
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                if result.returncode == 0:
+                    import json
+                    data = json.loads(result.stdout)
+                    version = data['version']
+                    name = data['package_name']
+                    
+                    # Commit the change
+                    subprocess.run(['/usr/bin/git', 'add', '-A'], check=False)
+                    subprocess.run(['/usr/bin/git', 'commit', '-m', 
+                                  f'chore({name}): set version to {version}'], check=False)
+                    print(f"✅ Version set to {version}", file=sys.stderr)
+      
+      # Default: just show version (relay all other flags like --output-format json)
+      - default:
+        relay: native
+
+  # Build with safety checks
   build:
-    # Pre-flight checks
-    - shell: |
-        # Check for uncommitted changes (only if in git repo)
-        if {{env.RY_GIT|/usr/bin/git}} rev-parse --git-dir >/dev/null 2>&1; then
-            if [ -n "$({{env.RY_GIT|/usr/bin/git}} status --porcelain)" ]; then
-                echo "ERROR: Uncommitted changes detected" >&2
-                echo "  Building from dirty tree may include unwanted files" >&2
-                echo "  Commit or stash changes first" >&2
-                exit 1
-            fi
-        fi
-        
-        # Determine dist directory based on flags
-        if echo "{{args.all}}" | grep -q -- "--package"; then
-            PACKAGE=$(echo "{{args.all}}" | sed -n 's/.*--package \([^ ]*\).*/\1/p')
-            DIST_DIR="packages/$PACKAGE/dist"
-        elif echo "{{args.all}}" | grep -q -- "--all-packages"; then
-            # Check all package dist directories
-            for dir in packages/*/dist; do
-                if [ -d "$dir" ] && [ "$(ls -A $dir 2>/dev/null)" ]; then
-                    echo "ERROR: $dir is not empty" >&2
-                    echo "  Clean with: rm -rf $dir/*" >&2
-                    exit 1
-                fi
-            done
-            DIST_DIR=""  # Already checked all
-        else
-            DIST_DIR="dist"
-        fi
-        
-        # Check if dist is empty (single package or root)
-        if [ -n "$DIST_DIR" ] && [ -d "$DIST_DIR" ] && [ "$(ls -A $DIST_DIR 2>/dev/null)" ]; then
-            echo "ERROR: $DIST_DIR is not empty" >&2
-            echo "  Clean with: rm -rf $DIST_DIR/*" >&2
-            exit 1
-        fi
+    description: Build package with safety checks
+    relay: native
+    augment:
+      before:
+        - python: |
+            import sys
+            import subprocess
+            from pathlib import Path
+            
+            # Check git status (warning only)
+            result = subprocess.run(['/usr/bin/git', 'status', '--porcelain'],
+                                  capture_output=True, text=True)
+            if result.stdout.strip():
+                print("⚠️  Building from dirty working tree", file=sys.stderr)
+                print("   Uncommitted changes may be included", file=sys.stderr)
+            
+            # Check if dist is empty
+            dist_dir = Path('dist')
+            if flags.get('package'):
+                # Use package name from flags
+                dist_dir = Path(f'packages/{flags.get("package")}/dist')
+            
+            if dist_dir.exists() and list(dist_dir.glob('*')):
+                print(f"❌ {dist_dir} is not empty", file=sys.stderr)
+                print(f"   Clean with: rm -rf {dist_dir}/*", file=sys.stderr)
+                sys.exit(1)
+      
+      after:
+        - shell: |
+            echo "✅ Build complete" >&2
+            echo "   Next: uv publish --dry-run" >&2
+
+  # Publish with token-based safety
+  publish:
+    description: Publish to PyPI with safety checks
     
-    # Run build
-    - shell: |
-        echo "INFO: Building package" >&2
-        {{env.RY_UV|/usr/bin/uv}} {{args.all}}
-  
-  # Pass through all other commands unchanged
-  default:
-    - shell: "{{env.RY_UV|/usr/bin/uv}} {{args.all}}"
+    handlers:
+      # Dry-run mode - verify and generate token
+      - when: "flags.get('dry-run')"
+        augment:
+          before:
+            - python: |
+                import sys
+                import os
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+                from version_workflow import check_publish_requirements
+                
+                # Get package from flags if specified
+                package = flags.get('package')
+                
+                ready, error = check_publish_requirements(package)
+                
+                if not ready:
+                    print(f"❌ Not ready to publish: {error}", file=sys.stderr)
+                    sys.exit(1)
+                
+                print("✅ Ready to publish", file=sys.stderr)
+                
+                # Check for PyPI token - try pass if not in env
+                if not os.environ.get('UV_PUBLISH_TOKEN'):
+                    import subprocess
+                    result = subprocess.run(['pass', 'pypi/uv-publish'], 
+                                          capture_output=True, text=True)
+                    if result.returncode == 0:
+                        print("🔑 Will use PyPI token from pass", file=sys.stderr)
+                    else:
+                        print("⚠️  No UV_PUBLISH_TOKEN set and pass pypi/uv-publish not found", file=sys.stderr)
+                        print("   Set with: export UV_PUBLISH_TOKEN=pypi-...", file=sys.stderr)
+                        print("   Or store in pass: pass insert pypi/uv-publish", file=sys.stderr)
+          
+          relay: native  # Let uv show what would be published
+          
+          after:
+            - python: |
+                import sys
+                import os
+                
+                # Generate publish token
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], '..', 'git', 'lib'))
+                from token_manager import TokenManager
+                
+                tm = TokenManager("uv")
+                token, expires = tm.generate_token("publish to PyPI")
+                
+                print(f"\n📋 PUBLISH_TOKEN={token}", file=sys.stderr)
+                print(f"   Expires in {expires} seconds", file=sys.stderr)
+                
+                # Build command without --dry-run
+                cmd_parts = ['PUBLISH_TOKEN=' + token, 'uv', 'publish']
+                # Add package flag if present
+                if flags.get('package'):
+                    cmd_parts.extend(['--package', flags.get('package')])
+                # Note: other flags will be passed through relay
+                
+                print(f"   Use: {' '.join(cmd_parts)}", file=sys.stderr)
+      
+      # Actual publish - require token
+      - when: "not flags.get('dry-run')"
+        augment:
+          before:
+            - python: |
+                import sys
+                import os
+                
+                # Check for publish token
+                token = os.environ.get('PUBLISH_TOKEN', '')
+                
+                if not token:
+                    print("❌ Verify publish requirements first", file=sys.stderr)
+                    print("   Run: uv publish --dry-run", file=sys.stderr)
+                    print("   Then use the PUBLISH_TOKEN provided", file=sys.stderr)
+                    sys.exit(1)
+                
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], '..', 'git', 'lib'))
+                from token_manager import TokenManager
+                
+                tm = TokenManager("uv")
+                if not tm.verify_token(token):
+                    print("❌ Invalid or expired token", file=sys.stderr)
+                    print("   Run: uv publish --dry-run", file=sys.stderr)
+                    sys.exit(1)
+                
+                print("✅ Publish token verified", file=sys.stderr)
+                
+                # Ensure PyPI token is set - try pass if not in env
+                if not os.environ.get('UV_PUBLISH_TOKEN'):
+                    import subprocess
+                    # Try to get from pass
+                    result = subprocess.run(['pass', 'pypi/uv-publish'], 
+                                          capture_output=True, text=True)
+                    if result.returncode == 0:
+                        os.environ['UV_PUBLISH_TOKEN'] = result.stdout.strip()
+                        print("🔑 Retrieved PyPI token from pass", file=sys.stderr)
+                    else:
+                        print("❌ UV_PUBLISH_TOKEN not set and pass pypi/uv-publish not found", file=sys.stderr)
+                        print("   Set with: export UV_PUBLISH_TOKEN=pypi-...", file=sys.stderr)
+                        print("   Or store in pass: pass insert pypi/uv-publish", file=sys.stderr)
+                        sys.exit(1)
+          
+          relay: native
+          
+          after:
+            - shell: |
+                echo "🎉 Published successfully!" >&2
+
+  # All other uv commands automatically relay to native uv

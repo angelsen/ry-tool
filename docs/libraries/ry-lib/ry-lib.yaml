@@ -1,154 +1,209 @@
-# ry-lib library for ry
-# Version management and development tools for ry libraries
+version: "2.0"
+name: ry-lib
+type: utility
+description: Library development and management for ry-next
 
-match:
-  # Check if library versions need bumping
-  "check-versions --hook-snippet":
-    - shell: |
-        echo "# Add to .git/hooks/pre-commit:" >&2
-        echo "#!/bin/bash" >&2
-        echo "" >&2
-        echo "# Check library versions before commit" >&2
-        echo "ry ry-lib check-versions | sh" >&2
-  
-  check-versions:
-    - python: |
-        import sys
-        import pathlib
-        import subprocess
-        import os
-        
-        lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
-        sys.path.insert(0, str(lib_path))
-        from version_checker import check_all_versions
-        
-        if not check_all_versions():
-            sys.exit(1)
-  
-  # Bump version of a specific library
-  # Usage: ry ry-lib bump <library> <patch|minor|major>
-  bump:
-    - python: |
-        import sys
-        import pathlib
-        import os
-        
-        lib_name = "{{args.0|}}"
-        bump_type = "{{args.1|patch}}"
-        
-        if not lib_name:
-            print("ERROR: Library name required", file=sys.stderr)
-            print("  Usage: ry ry-lib bump <library> [patch|minor|major]", file=sys.stderr)
-            sys.exit(1)
-        
-        lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
-        sys.path.insert(0, str(lib_path))
-        from version_bumper import bump_library_version
-        
-        if not bump_library_version(lib_name, bump_type):
-            sys.exit(1)
-  
-  # List all library versions
-  list:
-    - python: |
-        import pathlib
-        import yaml
-        import os
-        
-        docs_dir = pathlib.Path(os.getcwd()) / "docs" / "libraries"
-        if not docs_dir.exists():
-            print("ERROR: No docs/libraries directory found", file=sys.stderr)
-            sys.exit(1)
-        
-        print("Library Versions:", file=sys.stderr)
-        for lib_dir in sorted(docs_dir.iterdir()):
-            if lib_dir.is_dir():
-                meta_file = lib_dir / "meta.yaml"
-                if meta_file.exists():
-                    with open(meta_file) as f:
-                        meta = yaml.safe_load(f)
-                        version = meta.get("version", "unknown")
-                        print(f"  {lib_dir.name:20} {version}")
-  
-  # Initialize new library (was --dev-new)
+commands:
   init:
-    - shell: |
-        lib_name="{{args.0|}}"
-        if [ -z "$lib_name" ]; then
-            echo "ERROR: Library name required" >&2
-            echo "  Usage: ry ry-lib init <library>" >&2
-            exit 1
-        fi
-        bash "{{env.RY_LIBRARY_DIR}}/lib/create_library.sh" "$lib_name"
-  
-  # Validate all library YAML files (was --dev-check)
+    description: Initialize a new ry-next library
+    arguments:
+      name: required
+    flags:
+      type:
+        type: enum
+        values: [augmentation, utility, hybrid]
+        default: utility
+      target:
+        type: string
+        description: Target binary for augmentation libraries
+    
+    execute:
+      - python: |
+          import sys
+          import os
+          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+          from create_library import create_library
+          
+          success = create_library(
+              arguments['name'],
+              flags.get('type', 'utility'),
+              flags.get('target', '')
+          )
+          sys.exit(0 if success else 1)
+
   validate:
-    - python: |
-        import sys
-        import yaml
-        from pathlib import Path
-        
-        libs_dir = Path("docs/libraries")
-        if not libs_dir.exists():
-            print("ERROR: No docs/libraries directory", file=sys.stderr)
-            sys.exit(1)
-        
-        print("INFO: Checking all libraries...", file=sys.stderr)
-        all_valid = True
-        
-        for lib_dir in sorted(libs_dir.iterdir()):
-            if not lib_dir.is_dir():
-                continue
-            
-            yaml_file = lib_dir / f"{lib_dir.name}.yaml"
-            if not yaml_file.exists():
-                print(f"  ERROR: {lib_dir.name}: Missing {lib_dir.name}.yaml", file=sys.stderr)
-                all_valid = False
-                continue
-            
-            try:
-                with open(yaml_file) as f:
-                    yaml.safe_load(f)
-                print(f"  SUCCESS: {lib_dir.name}: Valid", file=sys.stderr)
-            except Exception as e:
-                print(f"  ERROR: {lib_dir.name}: Invalid YAML - {e}", file=sys.stderr)
-                all_valid = False
-        
-        if not all_valid:
-            sys.exit(1)
-  
-  # Update registry.json (self-contained)
+    description: Validate library structure and content
+    flags:
+      library:
+        type: string
+        description: Specific library to validate
+      all:
+        type: bool
+        description: Validate all libraries
+      verbose:
+        type: bool
+        description: Show detailed information
+    
+    handlers:
+      - when: flags.library
+        execute:
+          - python: |
+              import sys
+              import os
+              sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+              from validate_library import validate_library
+              
+              success = validate_library(flags['library'], flags.get('verbose', False))
+              sys.exit(0 if success else 1)
+      
+      - when: flags.all
+        execute:
+          - python: |
+              import sys
+              import os
+              sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+              from validate_library import validate_all
+              
+              success = validate_all(flags.get('verbose', False))
+              sys.exit(0 if success else 1)
+      
+      - default:
+        error: "Specify --library NAME or --all"
+
+  bump:
+    description: Bump library version
+    arguments:
+      library: required
+    flags:
+      type:
+        type: enum
+        values: [major, minor, patch]
+        default: patch
+      message:
+        type: string
+        description: Changelog entry message
+    
+    execute:
+      - python: |
+          import sys
+          import os
+          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+          from version_manager import bump_version
+          
+          success = bump_version(
+              arguments['library'],
+              flags.get('type', 'patch'),
+              flags.get('message', '')
+          )
+          sys.exit(0 if success else 1)
+
+  list:
+    description: List available libraries
+    flags:
+      json:
+        type: bool
+        description: Output as JSON
+      installed:
+        type: bool
+        description: Show only installed libraries
+    
+    execute:
+      - python: |
+          import sys
+          import os
+          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+          from registry_builder import list_libraries
+          
+          success = list_libraries(
+              flags.get('json', False),
+              flags.get('installed', False)
+          )
+          sys.exit(0 if success else 1)
+
+  check-versions:
+    description: Check if changed libraries have version bumps
+    flags:
+      hook:
+        type: bool
+        description: Show git hook setup instructions
+    
+    execute:
+      - python: |
+          import sys
+          import os
+          
+          if flags.get('hook'):
+              print("# Add to .git/hooks/pre-commit:")
+              print("#!/bin/bash")
+              print("ry-next ry-lib check-versions || exit 1")
+              sys.exit(0)
+          
+          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+          from version_manager import check_version_changes
+          
+          success = check_version_changes()
+          sys.exit(0 if success else 1)
+
   registry:
-    - shell: python3 "{{env.RY_LIBRARY_DIR}}/lib/update_registry.py"
-  
-  # Update registry and push (self-contained)
+    description: Generate registry.json for all libraries
+    flags:
+      output:
+        type: string
+        default: docs_next/libraries/registry.json
+        description: Output file path
+      pretty:
+        type: bool
+        description: Pretty print JSON
+    
+    execute:
+      - python: |
+          import sys
+          import os
+          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+          from registry_builder import build_registry
+          
+          success = build_registry(
+              flags.get('output'),
+              flags.get('pretty', False)
+          )
+          sys.exit(0 if success else 1)
+
   publish:
-    - shell: |
-        echo "INFO: Updating registry..." >&2
-        python3 "{{env.RY_LIBRARY_DIR}}/lib/update_registry.py" || exit 1
-        
-        echo "📤 Publishing changes..."
-        /usr/bin/git add docs/
-        if /usr/bin/git diff --cached --quiet; then
-            echo "INFO: No changes to publish" >&2
-            exit 0
-        fi
-        
-        /usr/bin/git commit -m "chore: update library registry"
-        /usr/bin/git push
-        echo "SUCCESS: Published to repository" >&2
-  
-  "--ry-version":
-    - shell: echo "{{library_name}} version {{library_version}}"
-  
-  default:
-    - shell: 'echo "Usage: ry ry-lib <command>" >&2'
-    - shell: 'echo "Commands:" >&2'
-    - shell: 'echo "  init <library>   - Initialize new library template" >&2'
-    - shell: 'echo "  validate         - Validate all library YAML files" >&2'
-    - shell: 'echo "  registry         - Update registry.json" >&2'
-    - shell: 'echo "  publish          - Update registry and push to git" >&2'
-    - shell: 'echo "  check-versions              - Check if changed libraries have version bumps" >&2'
-    - shell: 'echo "  check-versions --hook-snippet - Show git pre-commit hook code" >&2'
-    - shell: 'echo "  bump <lib> <type> - Bump library version (patch/minor/major)" >&2'
-    - shell: 'echo "  list            - List all library versions" >&2'
+    description: Update registry and commit changes
+    flags:
+      message:
+        type: string
+        default: "chore: update library registry"
+        description: Commit message
+      push:
+        type: bool
+        description: Also push to remote
+    
+    execute:
+      - shell: |
+          echo "📋 Updating registry..."
+      
+      - python: |
+          import sys
+          import os
+          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+          from registry_builder import build_registry
+          
+          if not build_registry(pretty=True):
+              sys.exit(1)
+      
+      - shell: |
+          cd "$(/usr/bin/git rev-parse --show-toplevel)" || exit 1
+          
+          if ! /usr/bin/git diff --quiet docs_next/libraries/; then
+              /usr/bin/git add docs_next/libraries/
+              /usr/bin/git commit -m "{{flags.message}}"
+              echo "✅ Committed changes"
+              
+              if [ "{{flags.push}}" = "True" ]; then
+                  /usr/bin/git push
+                  echo "📤 Pushed to remote"
+              fi
+          else
+              echo "ℹ️  No changes to publish"
+          fi

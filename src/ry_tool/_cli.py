@@ -28,6 +28,7 @@ class CLI:
         self.description = description
         self.commands: Dict[str, Command] = {}
         self.default_handler: Optional[Callable] = None
+        self.global_flags: Dict[str, bool] = {}  # Track global flags
 
     def command(
         self,
@@ -67,8 +68,23 @@ class CLI:
             self.show_help()
             sys.exit(0)
 
-        first_arg = argv[1]
-        remaining_args = argv[2:] if len(argv) > 2 else []
+        # Parse global flags first
+        self.global_flags = {}
+        filtered_argv = [argv[0]]
+        
+        for arg in argv[1:]:
+            if arg == '--ry-run':
+                self.global_flags['ry_run'] = True
+            else:
+                filtered_argv.append(arg)
+        
+        # If only global flags were provided, show help
+        if len(filtered_argv) < 2:
+            self.show_help()
+            sys.exit(0)
+        
+        first_arg = filtered_argv[1]
+        remaining_args = filtered_argv[2:] if len(filtered_argv) > 2 else []
 
         # Check for help
         if first_arg in ["-h", "--help"]:
@@ -140,13 +156,13 @@ class CLI:
         lines.append("Usage:")
         if self.default_handler:
             lines.append(
-                f"  {self.name} <library> [args...] | sh     Execute an installed library"
+                f"  {self.name} <library> [args...]          Execute library command"
             )
             lines.append(
-                f"  {self.name} <file.yaml> [args...] | sh   Execute a YAML file"
+                f"  {self.name} <file.yaml> [args...]        Execute from YAML file"
             )
             lines.append(
-                f"  {self.name} <library> [args...]          Generate commands (dry run)"
+                f"  {self.name} --ry-run <library> [args...] Show execution plan"
             )
             lines.append("")
 
@@ -186,11 +202,43 @@ class CLI:
 
         # Examples
         lines.append("Examples:")
-        lines.append(f"  {self.name} --install git                Install git library")
-        lines.append(
-            f'  {self.name} git commit "message" | sh    Execute git commit workflow'
-        )
-        lines.append(f"  {self.name} workflow.yaml deploy | sh    Execute YAML workflow")
-        lines.append(f"  {self.name} uv version                   Generate commands (dry run)")
+        lines.append(f"  {self.name} hello.yaml world --name Alice")
+        lines.append(f"  {self.name} git commit -m 'feat: add feature'")
+        lines.append(f"  {self.name} --ry-run deploy.yaml production")
+        lines.append(f"  {self.name} --list")
 
         print("\n".join(lines))
+
+
+# Utility decorators for common CLI patterns
+def requires_git_repo(func):
+    """Decorator to ensure command runs in a git repository."""
+    from functools import wraps
+    
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        import subprocess
+        try:
+            subprocess.run(['git', 'rev-parse', '--git-dir'], 
+                         capture_output=True, check=True)
+            return func(*args, **kwargs)
+        except subprocess.CalledProcessError:
+            print("Error: Not in a git repository", file=sys.stderr)
+            return 1
+    return wrapper
+
+
+def requires_file(file_path: str):
+    """Decorator to ensure required file exists."""
+    def decorator(func):
+        from functools import wraps
+        
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            from pathlib import Path
+            if not Path(file_path).exists():
+                print(f"Error: Required file not found: {file_path}", file=sys.stderr)
+                return 1
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator

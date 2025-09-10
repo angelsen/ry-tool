@@ -1,210 +1,283 @@
-# git.yaml - Enhanced git workflow with validation  
-# Usage: ry libraries/git/git.yaml <command> [args...]
+version: "2.0"
+name: git
+type: augmentation
+target: /usr/bin/git
+description: Git workflow with review tokens and commit validation
 
-match:
-  "diff --stat --staged":
-    # Show summary of staged changes and generate review token
-    - shell: "{{env.RY_GIT|/usr/bin/git}} diff --stat --staged"
-    - python: |
-        import sys
-        import pathlib
-        import os
-        
-        # Generate token for staged changes
-        lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
-        sys.path.insert(0, str(lib_path))
-        from token import get_current_token
-        
-        token, expires = get_current_token()
-        if token:
-            print(f"\nREVIEW_TOKEN={token}", file=sys.stderr)
-            print(f"# Expires in {expires} seconds", file=sys.stderr)
-  
-  "commit -m":
-    # Check review token - use !env to get it at YAML parse time
-    - python: |
-        import sys
-        import pathlib
-        import os
-        
-        # Token passed from environment at ry invocation time
-        token = "{{env.REVIEW_TOKEN|}}"
-        
-        if not token:
-            print("ERROR: Review staged changes first", file=sys.stderr)
-            print("  Run: git diff --stat --staged", file=sys.stderr) 
-            print("  Then: REVIEW_TOKEN=<token> git commit -m 'message'", file=sys.stderr)
-            sys.exit(1)
-        
-        lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
-        sys.path.insert(0, str(lib_path))
-        from token import verify_token
-        
-        if not verify_token(token):
-            print("ERROR: Invalid or expired token", file=sys.stderr)
-            print("  Run: git diff --stat --staged", file=sys.stderr)
-            sys.exit(1)
-    
-    # Validate and clean commit message
-    - python: |
-        import sys
-        import subprocess
-        import os
-        
-        # Get commit message from args (now args.0 after "commit -m" is consumed)
-        msg = """{{args.0|}}"""
-        if not msg:
-            print("ERROR: No commit message provided", file=sys.stderr)
-            print("  Usage: git commit -m 'message'", file=sys.stderr)
-            sys.exit(1)
-        
-        # Import our validators
-        import pathlib
-        lib_path = pathlib.Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
-        sys.path.insert(0, str(lib_path))
-        from strip_claude import strip_signatures
-        from validate_commit import validate_conventional
-        
-        # Clean the message
-        cleaned = strip_signatures(msg)
-        if cleaned != msg:
-            print("WARNING: Removed AI signatures from commit message", file=sys.stderr)
-        
-        # Validate format
-        is_valid, error = validate_conventional(cleaned)
-        if not is_valid:
-            print(f"ERROR: {error}", file=sys.stderr)
-            print("  Example: feat: add new feature", file=sys.stderr)
-            print("  Example: fix(api): handle null response", file=sys.stderr)
-            sys.exit(1)
-        
-        # Output cleaned message
-        print(cleaned)
-      capture: CLEAN_MSG
-    
-    # Commit with cleaned message
-    - shell: '{{env.RY_GIT|/usr/bin/git}} commit -m "$CLEAN_MSG"'
-      base64: false  # Disable encoding to allow variable expansion
-  
-  add:
-    - shell: "{{env.RY_GIT|/usr/bin/git}} add {{args.all}}"
-    - shell: |
-        if [ -n "$({{env.RY_GIT|/usr/bin/git}} diff --staged --name-only)" ]; then
-            echo "INFO: Files staged successfully" >&2
-            echo "  1. Review: git diff --stat --staged  (generates token)" >&2
-            echo "  2. Commit: REVIEW_TOKEN=<token> git commit -m 'type: description'" >&2
-        fi
-  
-  status:
-    - shell: "{{env.RY_GIT|/usr/bin/git}} status {{args.all|}}"
-  
-  tag:
-    # Enhanced tag with changelog integration
-    - python: |
-        import sys
-        import subprocess
-        import os
-        from pathlib import Path
-        
-        # Get tag name from args
-        tag_name = "{{args.0|}}"
-        if not tag_name:
-            # No tag name provided, list tags
-            subprocess.run(["{{env.RY_GIT|/usr/bin/git}}", "tag", "{{args.all|}}"])
-            sys.exit(0)
-        
-        # Extract version from tag name (v1.2.0 -> 1.2.0)
-        version = tag_name[1:] if tag_name.startswith('v') else tag_name
-        
-        # Check if this looks like a version tag
-        import re
-        if not re.match(r'^\d+\.\d+\.\d+', version):
-            # Not a version tag, pass through
-            print(f"INFO: Non-version tag, skipping changelog integration", file=sys.stderr)
-            sys.exit(0)
-        
-        # Check if CHANGELOG.md exists
-        if Path("CHANGELOG.md").exists():
-            print(f"INFO: Updating changelog for version {version}...", file=sys.stderr)
+commands:
+  # Show staged changes and generate review token
+  diff:
+    description: Show diff with token generation for --staged
+    relay: native
+    augment:
+      after:
+        - python: |
+            import sys
+            import os
             
-            # Try to bump changelog
+            # Only generate tokens for staged diff
+            if flags.get('staged') or flags.get('cached'):
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+                from token_manager import generate_review_token, TokenManager
+                
+                # Generate regular commit token
+                token, expires = generate_review_token("staged changes")
+                print(f"\n📋 REVIEW_TOKEN={token}", file=sys.stderr)
+                print(f"   Expires in {expires} seconds", file=sys.stderr)
+                print(f"   Use: REVIEW_TOKEN={token} git commit -m 'message'", file=sys.stderr)
+                
+                # Also generate amend token
+                tm = TokenManager("git-amend")
+                amend_token, amend_expires = tm.generate_token("amend commit")
+                print(f"\n📝 AMEND_TOKEN={amend_token}", file=sys.stderr)
+                print(f"   Expires in {amend_expires} seconds", file=sys.stderr)
+                print(f"   Use: AMEND_TOKEN={amend_token} git commit --amend", file=sys.stderr)
+
+  # Commit with token requirement and validation
+  commit:
+    description: Commit with review token and message validation
+    flags:
+      m/message: string
+      amend: bool
+    
+    handlers:
+      # Amend commits also need token (they change history)
+      - when: flags.amend
+        augment:
+          before:
+            - python: |
+                import sys
+                import os
+                
+                # Check for amend token
+                token = os.environ.get('AMEND_TOKEN', '')
+                
+                if not token:
+                    print("❌ Review changes before amending", file=sys.stderr)
+                    print("   Run: git diff --staged", file=sys.stderr)
+                    sys.exit(1)
+                
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+                from token_manager import TokenManager
+                
+                tm = TokenManager("git-amend")
+                if not tm.verify_token(token):
+                    print("❌ Invalid or expired amend token", file=sys.stderr)
+                    print("   Generate with: git diff --staged", file=sys.stderr)
+                    sys.exit(1)
+                
+                print("✅ Amend token verified", file=sys.stderr)
+            
+            # If message provided, validate it
+            - python: |
+                import sys
+                import os
+                
+                message = flags.get('m')
+                if message:
+                    sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+                    from commit_validator import process_commit_message
+                    
+                    cleaned, warnings = process_commit_message(message)
+                    
+                    # Show warnings but don't block
+                    for warning in warnings:
+                        print(f"⚠️  {warning}", file=sys.stderr)
+                    
+                    # Update the flag with cleaned message
+                    flags['m'] = cleaned
+                    if cleaned != message:
+                        print(f"✏️  Message cleaned", file=sys.stderr)
+          
+          relay: native
+          
+          after:
+            - shell: |
+                echo "✅ Commit amended successfully" >&2
+      
+      # Regular commit (not amend)
+      - default:
+        augment:
+          before:
+            - require: flags.m
+              error: "Commit message required. Use: git commit -m 'type: description'"
+            
+            # Check review token
+            - python: |
+                import sys
+                import os
+                
+                token = os.environ.get('REVIEW_TOKEN', '')
+                
+                if not token:
+                    print("❌ Review staged changes first", file=sys.stderr)
+                    print("   Run: git diff --staged", file=sys.stderr)
+                    print("   Then: REVIEW_TOKEN=<token> git commit -m 'message'", file=sys.stderr)
+                    sys.exit(1)
+                
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+                from token_manager import verify_review_token
+                
+                if not verify_review_token(token):
+                    print("❌ Invalid or expired token", file=sys.stderr)
+                    print("   Run: git diff --staged", file=sys.stderr)
+                    sys.exit(1)
+                
+                print("✅ Review token verified", file=sys.stderr)
+            
+            # Validate and clean commit message
+            - python: |
+                import sys
+                import os
+                
+                message = flags.get('m', '')
+                
+                sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+                from commit_validator import process_commit_message
+                
+                cleaned, warnings = process_commit_message(message)
+                
+                # Show warnings but don't block
+                for warning in warnings:
+                    print(f"⚠️  {warning}", file=sys.stderr)
+                
+                # Update the flag with cleaned message
+                flags['m'] = cleaned
+                if cleaned != message:
+                    print(f"✏️  Message cleaned", file=sys.stderr)
+          
+          relay: native
+          
+          after:
+            - shell: |
+                echo "✅ Committed successfully" >&2
+
+  # Tag with changelog integration for version tags
+  tag:
+    description: Create tags with automatic changelog release
+    arguments:
+      tagname: optional
+    flags:
+      m/message: string
+      d/delete: bool
+      l/list: bool
+    
+    handlers:
+      # List or delete tags - just pass through
+      - when: "flags.l or flags.d"
+        relay: native
+      
+      # Create version tag with changelog
+      - when: "arguments.tagname and not flags.d"
+        augment:
+          before:
+            - python: |
+                import sys
+                import os
+                import re
+                import subprocess
+                from pathlib import Path
+                
+                tag_name = arguments.get('tagname', '')
+                
+                # Check if it's a version tag
+                version_pattern = r'^v?\d+\.\d+\.\d+'
+                if not re.match(version_pattern, tag_name):
+                    # Not a version tag, skip augmentation
+                    sys.exit(0)
+                
+                # Extract version number
+                version = tag_name[1:] if tag_name.startswith('v') else tag_name
+                
+                # Check for CHANGELOG.md
+                if Path('CHANGELOG.md').exists():
+                    print(f"📝 Releasing version {version} in changelog...", file=sys.stderr)
+                    
+                    # Call changelog release
+                    result = subprocess.run(
+                        ['ry-next', 'changelog', 'release', version],
+                        capture_output=True,
+                        text=True
+                    )
+                    
+                    if result.returncode == 0:
+                        # Commit the changelog update
+                        subprocess.run(['/usr/bin/git', 'add', 'CHANGELOG.md'], check=False)
+                        subprocess.run(
+                            ['/usr/bin/git', 'commit', '-m', f'chore: release version {version}'],
+                            check=False
+                        )
+                        print(f"✅ Changelog updated for {version}", file=sys.stderr)
+                    else:
+                        print(f"⚠️  Could not update changelog: {result.stderr}", file=sys.stderr)
+          
+          relay: native
+          
+          after:
+            - shell: |
+                echo "📦 Tagged: {{arguments.tagname}}" >&2
+                echo "   Push with: git push origin {{arguments.tagname}}" >&2
+      
+      # Default: just pass through
+      - default:
+        relay: native
+
+  # Push with branch protection
+  push:
+    description: Push with branch protection and preview support
+    augment:
+      before:
+        - python: |
+            import sys
+            import subprocess
+            
+            # Skip warnings for --dry-run
+            if flags.get('dry-run'):
+                print("🔍 Preview mode - showing what would be pushed", file=sys.stderr)
+                sys.exit(0)  # Let native git handle the dry-run
+            
+            # Get current branch
             result = subprocess.run(
-                ["ry", "changelog", "bump", version],
+                ['/usr/bin/git', 'branch', '--show-current'],
                 capture_output=True,
                 text=True
             )
             
-            if result.returncode == 0:
-                # Changelog updated successfully, commit it
-                subprocess.run(["{{env.RY_GIT|/usr/bin/git}}", "add", "CHANGELOG.md"], check=True)
-                subprocess.run(
-                    ["{{env.RY_GIT|/usr/bin/git}}", "commit", "-m", f"chore: update changelog for {tag_name}"],
-                    check=True
-                )
-                print(f"SUCCESS: Changelog updated and committed", file=sys.stderr)
-            else:
-                print(f"WARNING: Could not update changelog", file=sys.stderr)
-                print(f"  {result.stderr.strip()}", file=sys.stderr)
-        else:
-            print(f"INFO: No CHANGELOG.md found, creating tag without changelog", file=sys.stderr)
-    
-    # Create the actual tag
-    - shell: |
-        TAG_NAME="{{args.0|}}"
-        
-        # Skip if no tag name (already handled above)
-        if [ -z "$TAG_NAME" ]; then
-            exit 0
-        fi
-        
-        # Check if -m flag is present
-        HAS_MESSAGE=false
-        MESSAGE=""
-        SKIP_NEXT=false
-        
-        for arg in {{args.all|}}; do
-            if [ "$SKIP_NEXT" = "true" ]; then
-                MESSAGE="$arg"
-                SKIP_NEXT=false
-                continue
-            fi
+            branch = result.stdout.strip()
             
-            if [ "$arg" = "-m" ]; then
-                HAS_MESSAGE=true
-                SKIP_NEXT=true
+            # Check if pushing to protected branch
+            protected = ['main', 'master']
+            if branch in protected:
+                # Only warn if not explicitly specified
+                if branch not in str(remaining_args) and 'origin' not in str(remaining_args):
+                    print(f"⚠️  Direct push to {branch} branch", file=sys.stderr)
+                    print(f"   Consider creating a feature branch:", file=sys.stderr)
+                    print(f"     git checkout -b feature/name", file=sys.stderr)
+                    print(f"     git push -u origin feature/name", file=sys.stderr)
+                    print(f"   Or preview: git push --dry-run", file=sys.stderr)
+                    print(f"   Or explicitly push: git push origin {branch}", file=sys.stderr)
+                    # Don't block, just warn
+      
+      relay: native
+      
+      after:
+        - python: |
+            import sys
+            
+            # Success message (won't run for --dry-run as we exit early)
+            if flags.get('tags') or flags.get('follow-tags'):
+                print("✅ Pushed with tags", file=sys.stderr)
+            else:
+                print("✅ Pushed successfully", file=sys.stderr)
+  
+  # Add command - augment to show hint after staging
+  add:
+    relay: native
+    augment:
+      after:
+        - shell: |
+            if [ -n "$(/usr/bin/git diff --staged --name-only 2>/dev/null)" ]; then
+                echo "📝 Files staged. Review with: git diff --staged" >&2
             fi
-        done
-        
-        if [ "$HAS_MESSAGE" = "true" ] && [ -n "$MESSAGE" ]; then
-            # User provided message
-            {{env.RY_GIT|/usr/bin/git}} tag "$TAG_NAME" -m "$MESSAGE"
-        else
-            # Auto-annotate with release message
-            {{env.RY_GIT|/usr/bin/git}} tag "$TAG_NAME" -m "Release $TAG_NAME"
-            echo "INFO: Created annotated tag with message: Release $TAG_NAME" >&2
-        fi
-        
-        echo "SUCCESS: Tagged as $TAG_NAME" >&2
-        echo "" >&2
-        echo "Next steps:" >&2
-        echo "  git push origin $TAG_NAME" >&2
   
-  push:
-    # Check if on main/master
-    - shell: |
-        BRANCH=$({{env.RY_GIT|/usr/bin/git}} branch --show-current)
-        if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
-            echo "ERROR: Direct push to $BRANCH blocked" >&2
-            echo "  Create a feature branch instead:" >&2
-            echo "    git checkout -b feature/name" >&2
-            echo "    git push -u origin feature/name" >&2
-            exit 1
-        fi
-    - shell: "{{env.RY_GIT|/usr/bin/git}} push {{args.all|}}"
-  
-  "--ry-version":
-    - shell: echo "{{library_name}} version {{library_version}}"
-  
-  # Pass through everything else
-  default:
-    - shell: "{{env.RY_GIT|/usr/bin/git}} {{args.all}}"
+  # All other git commands automatically relay to native git

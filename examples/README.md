@@ -89,11 +89,11 @@ All examples can be tested directly:
 
 ```bash
 # Test any example
-python -m src.ry_next docs_next/examples/hello.yaml greet
+ry-next examples/hello.yaml greet
 
 # Show execution plan
-python -m src.ry_next --ry-run docs_next/examples/git-simple.yaml commit -m test
+ry-next --ry-run examples/git-simple.yaml commit -m test
 
 # Get help
-python -m src.ry_next docs_next/examples/dev-workflow.yaml --ry-help
+ry-next examples/dev-workflow.yaml --ry-help
 ```

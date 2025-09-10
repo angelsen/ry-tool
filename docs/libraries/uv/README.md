@@ -1,28 +1,26 @@
 # uv
 
-A ry library for uv operations.
+Uv library for ry-next
 
 ## Installation
 
 ```bash
-ry --install uv
+ry-next --install uv
 ```
 
 ## Usage
 
 ```bash
-ry uv test        # Test the library
-ry uv version     # Show version
-```
-
-## Development
-
-To test locally:
-```bash
-ry docs/libraries/uv/uv.yaml test
+ry-next uv --ry-help
 ```
 
 ## Commands
 
-- `test`: Verify library is working
-- `version`: Display library version
+See `uv.yaml` for available commands.
+
+## Development
+
+This library was created with ry-lib:
+```bash
+ry-next ry-lib init uv --type augmentation
+```

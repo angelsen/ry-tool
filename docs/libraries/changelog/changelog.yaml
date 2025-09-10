@@ -1,236 +1,109 @@
-# changelog.yaml - Simple changelog management
-# Usage: ry libraries/changelog/changelog.yaml <command> [args...]
+version: "2.0"
+name: changelog
+type: utility
+description: Simple changelog initialization and release management
 
-match:
+commands:
   init:
-    # Create a new CHANGELOG.md from template
-    - python: |
-        import sys
-        import os
-        from pathlib import Path
-        
-        # Support custom path and library name via environment
-        changelog_path = os.environ.get('CHANGELOG_PATH', 'CHANGELOG.md')
-        library_name = os.environ.get('LIBRARY_NAME', 'this project')
-        
-        changelog = Path(changelog_path)
-        if changelog.exists():
-            print(f"ERROR: {changelog_path} already exists", file=sys.stderr)
-            sys.exit(1)
-        
-        # Ensure parent directory exists
-        changelog.parent.mkdir(parents=True, exist_ok=True)
-        
-        template = f"""# Changelog
-
-        All notable changes to {library_name} will be documented in this file.
-
-        The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-        and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-        ## [Unreleased]
-
-        ### Added
-
-        ### Changed
-
-        ### Fixed
-
-        ### Removed
-
-        <!-- 
-        When version is bumped, the [Unreleased] section will automatically 
-        become the new version section. Add your changes under appropriate headings.
-        --->
-        """
-        # Remove leading whitespace from template
-        import textwrap
-        template = textwrap.dedent(template).strip() + "\n"
-        
-        changelog.write_text(template)
-        print(f"SUCCESS: Created {changelog_path}", file=sys.stderr)
-        print("INFO: Edit the [Unreleased] section to track your changes", file=sys.stderr)
-  
-  bump:
-    # Bump version in changelog (moves [Unreleased] to versioned section)
-    - python: |
-        import sys
-        version = "{{args.0|}}"
-        if not version:
-            print("ERROR: Missing version argument", file=sys.stderr)
-            print("  Usage: ry changelog bump <version>", file=sys.stderr)
-            sys.exit(1)
+    description: Initialize a new CHANGELOG.md
+    flags:
+      name:
+        type: string
+        description: Optional project name for the title
     
-    - python: |
-        import sys
-        from pathlib import Path
-        
-        # Add lib to path
-        import os
-        lib_path = Path(os.environ['RY_LIBRARY_DIR']) / 'lib'
-        sys.path.insert(0, str(lib_path))
-        
-        from update_version import update_changelog_version
-        
-        # Support custom path via environment
-        changelog_path = os.environ.get('CHANGELOG_PATH', 'CHANGELOG.md')
-        changelog = Path(changelog_path)
-        version = "{{args.0}}"
-        
-        if not changelog.exists():
-            print(f"ERROR: {changelog_path} not found", file=sys.stderr)
-            print("  Run: ry changelog init", file=sys.stderr)
-            sys.exit(1)
-        
-        if update_changelog_version(changelog, version):
-            print(f"SUCCESS: Bumped {changelog_path} to version {version}", file=sys.stderr)
-        else:
-            print(f"ERROR: Failed to bump changelog", file=sys.stderr)
-            print(f"  Make sure [Unreleased] section exists", file=sys.stderr)
-            sys.exit(1)
-  
-  last-version:
-    # Get the last released version from CHANGELOG
-    - python: |
-        import sys
-        import re
-        from pathlib import Path
-        import os
-        
-        # Support custom path via environment
-        changelog_path = os.environ.get('CHANGELOG_PATH', 'CHANGELOG.md')
-        changelog = Path(changelog_path)
-        
-        if not changelog.exists():
-            print("ERROR: No CHANGELOG.md found", file=sys.stderr)
-            sys.exit(1)
-        
-        content = changelog.read_text()
-        
-        # Find first version entry (not Unreleased)
-        version_pattern = r'## \[(\d+\.\d+\.\d+[^\]]*)\]'
-        match = re.search(version_pattern, content)
-        
-        if match:
-            # Output just the version to stdout for capture
-            print(match.group(1))
-        else:
-            print("ERROR: No version found in CHANGELOG", file=sys.stderr)
-            sys.exit(1)
-  
+    execute:
+      - python: |
+          import sys
+          import os
+          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+          from changelog_core import init_changelog
+          
+          success = init_changelog(flags.get('name'))
+          sys.exit(0 if success else 1)
+
+  release:
+    description: Convert Unreleased to versioned release
+    arguments:
+      version:
+        required: true
+        description: Version number (e.g., 1.0.0)
+    flags:
+      date:
+        type: string
+        description: Release date (defaults to today)
+    
+    execute:
+      - python: |
+          import sys
+          import os
+          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+          from changelog_core import release_version
+          
+          success = release_version(
+              arguments['version'],
+              flags.get('date')
+          )
+          sys.exit(0 if success else 1)
+
   validate:
-    # Validate changelog format (for CI/CD)
-    - python: |
-        import sys
-        from pathlib import Path
-        import os
-        
-        # Support custom path via environment
-        changelog_path = os.environ.get('CHANGELOG_PATH', 'CHANGELOG.md')
-        changelog = Path(changelog_path)
-        
-        if not changelog.exists():
-            print(f"ERROR: {changelog_path} not found", file=sys.stderr)
-            sys.exit(1)
-        
-        content = changelog.read_text()
-        
-        # Check for required sections
-        has_changelog = '# Changelog' in content
-        has_unreleased = '## [Unreleased]' in content or '## Unreleased' in content
-        has_keepachangelog = 'keepachangelog.com' in content.lower()
-        
-        if not has_changelog:
-            print(f"ERROR: Missing '# Changelog' header", file=sys.stderr)
-            sys.exit(1)
-        
-        if not has_unreleased:
-            print(f"WARNING: No [Unreleased] section found", file=sys.stderr)
-        
-        if not has_keepachangelog:
-            print(f"INFO: Consider adding Keep a Changelog reference", file=sys.stderr)
-        
-        print(f"SUCCESS: {changelog_path} format is valid", file=sys.stderr)
-        sys.exit(0)
-  
-  "check --hook-snippet":
-    # Show git hook snippet for changelog checking
-    - shell: |
-        echo "# Add to .git/hooks/pre-commit:" >&2
-        echo "#!/bin/bash" >&2
-        echo "" >&2
-        echo "# Check CHANGELOG has content for commits" >&2
-        echo "ry changelog check | sh" >&2
-  
-  check:
-    # Check if [Unreleased] has content (for pre-commit hooks)
-    - python: |
-        import sys
-        from pathlib import Path
-        import os
-        import re
-        
-        # Support custom path via environment
-        changelog_path = os.environ.get('CHANGELOG_PATH', 'CHANGELOG.md')
-        changelog = Path(changelog_path)
-        
-        if not changelog.exists():
-            print(f"ERROR: {changelog_path} not found", file=sys.stderr)
-            sys.exit(1)
-        
-        content = changelog.read_text()
-        
-        # Find [Unreleased] section
-        unreleased_pattern = r'## \[Unreleased\].*?(?=## \[|$)'
-        match = re.search(unreleased_pattern, content, re.DOTALL)
-        
-        if not match:
-            print(f"WARNING: No [Unreleased] section found", file=sys.stderr)
-            sys.exit(1)
-        
-        unreleased_content = match.group(0)
-        
-        # Check if any subsections have content
-        has_content = False
-        for section in ['### Added', '### Changed', '### Fixed', '### Removed']:
-            if section in unreleased_content:
-                # Get content after section header
-                section_pattern = f'{re.escape(section)}.*?(?=###|##|$)'
-                section_match = re.search(section_pattern, unreleased_content, re.DOTALL)
-                if section_match:
-                    section_text = section_match.group(0)
-                    # Remove section header and check if there's content
-                    lines = section_text.split('\n')[1:]
-                    for line in lines:
-                        if line.strip() and not line.strip().startswith('#'):
-                            has_content = True
-                            break
-        
-        if not has_content:
-            print(f"WARNING: [Unreleased] section has no content", file=sys.stderr)
-            print(f"  Add your changes to CHANGELOG.md before committing", file=sys.stderr)
-            sys.exit(1)
-        
-        print(f"SUCCESS: [Unreleased] section has content", file=sys.stderr)
-        sys.exit(0)
-  
-  "--ry-version":
-    - shell: echo "{{library_name}} version {{library_version}}"
-  
-  # Default: show help
-  default:
-    - shell: |
-        echo "Usage: ry changelog <command>" >&2
-        echo "" >&2
-        echo "Commands:" >&2
-        echo "  init         - Create new CHANGELOG.md from template" >&2
-        echo "  bump         - Bump version (move [Unreleased] to version section)" >&2
-        echo "  check        - Check if [Unreleased] has content (pre-commit)" >&2
-        echo "  validate     - Validate changelog format (CI/CD)" >&2
-        echo "  last-version - Get the last released version from CHANGELOG" >&2
-        echo "" >&2
-        echo "Examples:" >&2
-        echo "  ry changelog init" >&2
-        echo "  ry changelog bump 1.2.3" >&2
-        echo "  ry changelog check  # Use in pre-commit hooks" >&2
-        echo "  CHANGELOG_PATH=lib/CHANGELOG.md ry changelog validate" >&2
+    description: Validate CHANGELOG.md format
+    
+    execute:
+      - python: |
+          import sys
+          import os
+          sys.path.insert(0, os.path.join(env['RY_LIBRARY_DIR'], 'lib'))
+          from changelog_core import validate_changelog
+          
+          success = validate_changelog()
+          sys.exit(0 if success else 1)
+
+  show:
+    description: Display current CHANGELOG.md
+    flags:
+      unreleased:
+        type: bool
+        description: Show only unreleased changes
+      latest:
+        type: bool
+        description: Show only latest version
+    
+    execute:
+      - python: |
+          from pathlib import Path
+          import sys
+          
+          changelog = Path('CHANGELOG.md')
+          if not changelog.exists():
+              print("❌ CHANGELOG.md not found")
+              sys.exit(1)
+          
+          with open(changelog) as f:
+              content = f.read()
+          
+          if flags.get('unreleased'):
+              # Extract unreleased section
+              lines = content.split('\n')
+              in_unreleased = False
+              for line in lines:
+                  if line.strip() == '## [Unreleased]':
+                      in_unreleased = True
+                      print(line)
+                  elif in_unreleased:
+                      if line.startswith('## ['):
+                          break
+                      print(line)
+          elif flags.get('latest'):
+              # Extract latest version
+              lines = content.split('\n')
+              in_version = False
+              for line in lines:
+                  if line.startswith('## [') and 'Unreleased' not in line:
+                      in_version = True
+                      print(line)
+                  elif in_version:
+                      if line.startswith('## ['):
+                          break
+                      print(line)
+          else:
+              print(content)
