@@ -13,6 +13,7 @@ dependencies = [
 
 [project.scripts]
 ry = "ry_tool.__main__:main"
+ry-next = "ry_next.app:run"
 
 [build-system]
 requires = ["uv_build>=0.8.13,<0.9.0"]

@@ -1,0 +1,82 @@
+version: "2.0"
+name: dev
+type: utility
+description: Development workflow automation
+
+commands:
+  # Run tests with coverage
+  test:
+    description: Run tests with optional coverage
+    flags:
+      coverage: bool
+      verbose: bool
+    arguments:
+      pattern: optional
+    
+    execute:
+      - python: |
+          import subprocess
+          import sys
+          
+          pattern = arguments.get('pattern', 'test_*.py')
+          
+          if flags.get('coverage'):
+              cmd = ['python', '-m', 'pytest', '--cov=.', pattern]
+          else:
+              cmd = ['python', '-m', 'pytest', pattern]
+          
+          if flags.get('verbose'):
+              cmd.append('-v')
+          
+          print(f"🧪 Running: {' '.join(cmd)}", file=sys.stderr)
+          result = subprocess.run(cmd)
+          sys.exit(result.returncode)
+  
+  # Format code
+  format:
+    description: Format Python code
+    arguments:
+      path: optional
+    
+    execute:
+      - shell: |
+          PATH="${{arguments.path|default:.}}"
+          echo "🎨 Formatting $PATH..." >&2
+          ruff format "$PATH"
+          ruff check "$PATH" --fix
+  
+  # Clean build artifacts
+  clean:
+    description: Clean build artifacts
+    execute:
+      - shell: |
+          echo "🧹 Cleaning build artifacts..." >&2
+          rm -rf build/ dist/ *.egg-info __pycache__
+          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+          find . -type f -name "*.pyc" -delete
+          echo "✨ Clean!" >&2
+  
+  # Setup development environment
+  setup:
+    description: Setup development environment
+    execute:
+      - shell: |
+          echo "🔧 Setting up development environment..." >&2
+          
+          # Check for Python
+          if ! command -v python3 &> /dev/null; then
+              echo "❌ Python 3 not found" >&2
+              exit 1
+          fi
+          
+          # Create virtual environment if needed
+          if [ ! -d "venv" ]; then
+              echo "📦 Creating virtual environment..." >&2
+              python3 -m venv venv
+          fi
+          
+          # Install dependencies
+          echo "📥 Installing dependencies..." >&2
+          ./venv/bin/pip install -e .
+          
+          echo "✅ Setup complete! Activate with: source venv/bin/activate" >&2

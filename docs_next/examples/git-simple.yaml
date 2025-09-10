@@ -1,0 +1,62 @@
+version: "2.0"
+name: git-simple
+type: augmentation
+target: /usr/bin/git
+description: Simple git enhancements
+
+commands:
+  # Quick status with branch info
+  status:
+    description: Enhanced status with branch info
+    relay: native
+    augment:
+      before:
+        - shell: |
+            echo "📍 Current branch: $(git branch --show-current)" >&2
+            echo "📊 Status:" >&2
+  
+  # Commit with basic validation
+  commit:
+    description: Commit with message validation
+    flags:
+      m/message: string
+    
+    relay: native
+    augment:
+      before:
+        - python: |
+            import sys
+            
+            # Check for message
+            message = flags.get('m', '')
+            if not message:
+                print("❌ Error: Commit message required (-m)", file=sys.stderr)
+                print("   Usage: git commit -m 'your message'", file=sys.stderr)
+                sys.exit(1)
+            
+            # Check message length
+            if len(message) < 3:
+                print("❌ Error: Message too short (min 3 chars)", file=sys.stderr)
+                sys.exit(1)
+            
+            print(f"✅ Committing with: {message}", file=sys.stderr)
+  
+  # Safe push with confirmation
+  push:
+    description: Push with safety check
+    arguments:
+      remote: optional
+      branch: optional
+    
+    handlers:
+      - when: arguments.branch == "main" or arguments.branch == "master"
+        augment:
+          before:
+            - shell: |
+                echo "⚠️  WARNING: Pushing to main/master branch!" >&2
+                echo "   Continue? (Ctrl+C to cancel)" >&2
+                read -t 5 || true
+          relay: native
+      
+      - default:
+        relay: native

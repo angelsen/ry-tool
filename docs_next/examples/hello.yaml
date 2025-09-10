@@ -1,0 +1,31 @@
+version: "2.0"
+name: hello
+type: utility
+description: Simple greeting utility
+
+commands:
+  greet:
+    description: Greet someone
+    arguments:
+      name: optional
+    flags:
+      excited: bool
+      times: int
+    
+    execute:
+      - python: |
+          name = arguments.get('name', 'World')
+          times = int(flags.get('times', 1))
+          excited = flags.get('excited', False)
+          
+          greeting = f"Hello, {name}"
+          if excited:
+              greeting += "!"
+          
+          for i in range(times):
+              print(greeting)
+  
+  goodbye:
+    description: Say goodbye
+    execute:
+      - shell: echo "Goodbye! 👋"
