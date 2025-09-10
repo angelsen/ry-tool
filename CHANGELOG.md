@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **OUTPUT_STYLE_GUIDE.md** - Comprehensive formatting guide for consistent library outputs
+  - Standardized emoji prefixes for different message types
+  - Clear stderr/stdout separation patterns
+  - Consistent error messages with remediation steps
+- **Template-based library creation** - New template system for ry-lib
+  - `templates/utility.yaml` and `templates/augmentation.yaml` for quick scaffolding
+  - Automatic template variable substitution
+  - Improved library creation workflow
+- **Enhanced documentation**
+  - `CLAUDE.md` for Claude Code integration and guidance
+  - `llms.txt` with complete workflow documentation for LLM context
+  - Workflow examples in all library help outputs
+- **Git workflow improvements**
+  - Automatic changelog validation and update on tagging
+  - Better staging feedback with Task agent hint for large changes
+  - Enhanced token expiration messages
+
+### Changed
+- **All libraries updated to follow OUTPUT_STYLE_GUIDE.md**
+  - Consistent use of emoji prefixes (✅ ❌ 📦 📝 ⚠️ 🔑 📋 ℹ️ 🔄 💡)
+  - Proper stderr/stdout separation across all outputs
+  - Standardized error messages with clear remediation steps
+- **Improved error handling**
+  - All error messages now include exact commands to fix issues
+  - Better token verification feedback
+  - More helpful validation messages
+- **Library management enhancements**
+  - Registry builder with improved validation
+  - Version manager with better token flow
+  - Create library using templates instead of hardcoded structure
+
+### Fixed
+- Changelog core now properly checks for unreleased content before tagging
+- Git library validates changelog has changes before allowing tags
+- All Python modules now properly output to stderr
+- Token verification uses correct environment variable access
+
 ## [1.1.0] - 2025-09-10
 
 ### Added
