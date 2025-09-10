@@ -28,7 +28,7 @@ def build_registry(output_path: Optional[str] = None, pretty: bool = False) -> b
             break
     
     if not libs_dir:
-        print("❌ No libraries directory found", file=sys.stderr)
+        print("ERROR: No libraries directory found", file=sys.stderr)
         return False
     
     registry = {
@@ -67,7 +67,7 @@ def build_registry(output_path: Optional[str] = None, pretty: bool = False) -> b
                 registry['libraries'][lib_dir.name] = entry
                 
             except Exception as e:
-                print(f"⚠️  Skipping {lib_dir.name}: {e}", file=sys.stderr)
+                print(f"WARNING: Skipping {lib_dir.name}: {e}", file=sys.stderr)
     
     # Determine output path
     if not output_path:
@@ -82,12 +82,12 @@ def build_registry(output_path: Optional[str] = None, pretty: bool = False) -> b
             else:
                 json.dump(registry, f)
         
-        print(f"✅ Generated registry with {len(registry['libraries'])} libraries", file=sys.stderr)
+        print(f"SUCCESS: Generated registry with {len(registry['libraries'])} libraries", file=sys.stderr)
         print(f"   Written to: {output_path}", file=sys.stderr)
         return True
         
     except Exception as e:
-        print(f"❌ Failed to write registry: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to write registry: {e}", file=sys.stderr)
         return False
 
 
@@ -121,12 +121,12 @@ def list_libraries(as_json: bool = False, installed_only: bool = False) -> bool:
             if as_json:
                 print(json.dumps(installed, indent=2))  # Data output to stdout
             else:
-                print("Installed Libraries:", file=sys.stderr)
+                print("INFO: Installed Libraries:", file=sys.stderr)
                 print("-" * 60, file=sys.stderr)
                 for name, info in installed.items():
                     print(f"{name:20} {info.get('version', '0.0.0'):10} {info.get('type', 'unknown')}", file=sys.stderr)
         else:
-            print("ℹ️  No libraries installed", file=sys.stderr)
+            print("INFO: No libraries installed", file=sys.stderr)
         
         return True
     
@@ -138,7 +138,7 @@ def list_libraries(as_json: bool = False, installed_only: bool = False) -> bool:
             break
     
     if not libs_dir:
-        print("❌ No libraries directory found", file=sys.stderr)
+        print("ERROR: No libraries directory found", file=sys.stderr)
         return False
     
     libraries = {}
@@ -165,13 +165,13 @@ def list_libraries(as_json: bool = False, installed_only: bool = False) -> bool:
                             libraries[lib_dir.name]['version'] = meta.get('version', '0.0.0')
                     
                 except Exception as e:
-                    print(f"⚠️  Error reading {lib_dir.name}: {e}", file=sys.stderr)
+                    print(f"WARNING: Error reading {lib_dir.name}: {e}", file=sys.stderr)
     
     if as_json:
         print(json.dumps(libraries, indent=2))  # Data output to stdout
     else:
         if libraries:
-            print("Available Libraries:", file=sys.stderr)
+            print("INFO: Available Libraries:", file=sys.stderr)
             print("-" * 80, file=sys.stderr)
             print(f"{'Name':20} {'Version':10} {'Type':12} Description", file=sys.stderr)
             print("-" * 80, file=sys.stderr)
@@ -179,7 +179,7 @@ def list_libraries(as_json: bool = False, installed_only: bool = False) -> bool:
                 desc = info['description'][:45] + '...' if len(info['description']) > 45 else info['description']
                 print(f"{name:20} {info['version']:10} {info['type']:12} {desc}", file=sys.stderr)
         else:
-            print("ℹ️  No libraries found", file=sys.stderr)
+            print("INFO: No libraries found", file=sys.stderr)
     
     return True
 

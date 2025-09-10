@@ -130,10 +130,10 @@ def commit_version_bump(package_name: str, old_version: str, new_version: str):
     tag_message = f"Release {package_name} v{new_version}"
     subprocess.run(['/usr/bin/git', 'tag', tag_name, '-m', tag_message], check=True)
     
-    print(f"✅ Committed and tagged as {tag_name}", file=sys.stderr)
-    print(f"   Push with:", file=sys.stderr)
-    print(f"     git push origin main", file=sys.stderr)
-    print(f"     git push origin {tag_name}", file=sys.stderr)
+    print(f"SUCCESS: Committed and tagged as {tag_name}", file=sys.stderr)
+    print(f"INFO: Next steps:", file=sys.stderr)
+    print(f"   1. git push origin main", file=sys.stderr)
+    print(f"   2. git push origin {tag_name}", file=sys.stderr)
 
 
 def check_publish_requirements(package: Optional[str] = None) -> Tuple[bool, str]:

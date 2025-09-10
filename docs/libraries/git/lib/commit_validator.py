@@ -17,7 +17,7 @@ def strip_ai_signatures(message: str) -> str:
     """
     # Common AI signatures to remove
     signatures = [
-        r'🤖.*$',  # Robot emoji lines
+        r'[🤖\U0001F916].*$',  # Robot emoji lines
         r'Generated with \[Claude.*\].*$',
         r'Co-Authored-By: Claude.*$',
         r'Assistant:.*$',
@@ -133,8 +133,7 @@ if __name__ == "__main__":
     
     for msg in test_messages:
         cleaned, warnings = process_commit_message(msg)
-        print(f"Original: {msg[:50]}...", file=sys.stderr)
-        print(f"Cleaned: {cleaned[:50]}...", file=sys.stderr)
+        print(f"INFO: Original: {msg[:50]}...", file=sys.stderr)
+        print(f"INFO: Cleaned: {cleaned[:50]}...", file=sys.stderr)
         if warnings:
-            print(f"Warnings: {warnings}", file=sys.stderr)
-        print(file=sys.stderr)
+            print(f"WARNING: {warnings}", file=sys.stderr)

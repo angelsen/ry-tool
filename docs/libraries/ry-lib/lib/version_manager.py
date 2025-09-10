@@ -69,19 +69,19 @@ def bump_version(library: str, bump_type: str = 'patch', message: str = '') -> b
             break
     
     if not lib_dir:
-        print(f"❌ Library {library} not found", file=sys.stderr)
+        print(f"ERROR: Library {library} not found", file=sys.stderr)
         return False
     
     try:
         # Load current metadata
         meta_path = lib_dir / 'meta.yaml'
         if not meta_path.exists():
-            print(f"❌ No meta.yaml found for {library}", file=sys.stderr)
+            print(f"ERROR: No meta.yaml found for {library}", file=sys.stderr)
             return False
         
         meta = load_yaml(meta_path)
         if not meta:
-            print(f"❌ Could not load metadata for {library}", file=sys.stderr)
+            print(f"ERROR: Could not load metadata for {library}", file=sys.stderr)
             return False
         
         # Bump version
@@ -95,7 +95,7 @@ def bump_version(library: str, bump_type: str = 'patch', message: str = '') -> b
         
         # Save updated metadata
         if not save_yaml(meta, meta_path):
-            print(f"❌ Failed to save meta.yaml", file=sys.stderr)
+            print(f"ERROR: Failed to save meta.yaml", file=sys.stderr)
             return False
         
         # Update CHANGELOG if it exists and message provided
@@ -103,14 +103,14 @@ def bump_version(library: str, bump_type: str = 'patch', message: str = '') -> b
         if changelog_file.exists() and message:
             update_changelog(changelog_file, new_version, message)
         
-        print(f"✅ Bumped {library}: {old_version} → {new_version}", file=sys.stderr)
+        print(f"SUCCESS: Bumped {library}: {old_version} -> {new_version}", file=sys.stderr)
         if message:
             print(f"   {message}", file=sys.stderr)
         
         return True
         
     except Exception as e:
-        print(f"❌ Failed to bump version: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to bump version: {e}", file=sys.stderr)
         return False
 
 
@@ -155,7 +155,7 @@ def check_version_changes() -> bool:
         )
         changed_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
     except Exception:
-        print("❌ Not in a git repository", file=sys.stderr)
+        print("ERROR: Not in a git repository", file=sys.stderr)
         return True
     
     # Check which libraries have changes
@@ -176,10 +176,10 @@ def check_version_changes() -> bool:
             missing_bumps.append(lib)
     
     if missing_bumps:
-        print("❌ Libraries changed without version bump:", file=sys.stderr)
+        print("ERROR: Libraries changed without version bump:", file=sys.stderr)
         for lib in missing_bumps:
             print(f"   - {lib}", file=sys.stderr)
-        print("📝 Run: ry-next ry-lib bump <library> --type patch", file=sys.stderr)
+        print("   Run: ry-next ry-lib bump <library> --type patch", file=sys.stderr)
         return False
     
     return True

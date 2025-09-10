@@ -26,7 +26,7 @@ commands:
           config_file = Path('{{name}}.config.yaml')
           
           if config_file.exists() and not flags.get('force'):
-              print(f"❌ {config_file} already exists", file=sys.stderr)
+              print(f"ERROR: {config_file} already exists", file=sys.stderr)
               print("   Use --force to overwrite", file=sys.stderr)
               sys.exit(1)
           
@@ -43,8 +43,8 @@ commands:
           with open(config_file, 'w') as f:
               yaml.dump(config, f, default_flow_style=False)
           
-          print(f"✅ Created {config_file}", file=sys.stderr)
-          print(f"📝 Next: Edit {config_file} to customize settings", file=sys.stderr)
+          print(f"SUCCESS: Created {config_file}", file=sys.stderr)
+          print(f"INFO: Next: Edit {config_file} to customize settings", file=sys.stderr)
 
   status:
     description: Show current status
@@ -55,13 +55,13 @@ commands:
           
           config_file = Path('{{name}}.config.yaml')
           
-          print(f"ℹ️  {{name}} status", file=sys.stderr)
+          print(f"INFO: {{name}} status", file=sys.stderr)
           
           if config_file.exists():
-              print(f"   Config: {config_file} ✓", file=sys.stderr)
+              print(f"   Config: {config_file} (ready)", file=sys.stderr)
           else:
               print(f"   Config: Not initialized", file=sys.stderr)
-              print(f"📝 Run: ry-next {{name}} init", file=sys.stderr)
+              print(f"   Run: ry-next {{name}} init", file=sys.stderr)
 
   process:
     description: Process input data
@@ -92,7 +92,7 @@ commands:
           input_val = arguments.get('input', 'stdin')
           format_type = flags.get('format', 'text')
           
-          print(f"📦 Processing {input_val}...", file=sys.stderr)
+          print(f"BUILD: Processing {input_val}...", file=sys.stderr)
           
           # Example processing - replace with actual logic
           result = {
@@ -110,11 +110,11 @@ commands:
               print(f"Processed: {input_val}")
           
           # Status messages to stderr
-          print("✅ Complete", file=sys.stderr)
+          print("SUCCESS: Complete", file=sys.stderr)
           
           if flags.get('output'):
               # In real implementation, would write to file
-              print(f"📝 Output saved to: {flags['output']}", file=sys.stderr)
+              print(f"INFO: Output saved to: {flags['output']}", file=sys.stderr)
 
   list:
     description: List available items
@@ -151,7 +151,7 @@ commands:
               if items:
                   print("Available items:", file=sys.stderr)
                   for item in items:
-                      status_icon = "✅" if item['status'] == 'active' else "⭕"
-                      print(f"  {status_icon} {item['name']}", file=sys.stderr)
+                      status = "ACTIVE" if item['status'] == 'active' else "INACTIVE"
+                      print(f"  {item['name']:20} {status}", file=sys.stderr)
               else:
-                  print("ℹ️  No items found", file=sys.stderr)
+                  print("INFO: No items found", file=sys.stderr)

@@ -71,7 +71,7 @@ commands:
           
           changelog = Path('CHANGELOG.md')
           if not changelog.exists():
-              print("❌ CHANGELOG.md not found", file=sys.stderr)
+              print("ERROR: CHANGELOG.md not found", file=sys.stderr)
               print("   Run: ry-next changelog init", file=sys.stderr)
               sys.exit(1)
           
@@ -104,3 +104,22 @@ commands:
                       print(line)
           else:
               print(content)
+
+default:
+  execute:
+    - python: |
+        print("changelog - Simple changelog initialization and release management", file=sys.stderr)
+        print("Version: 0.1.0", file=sys.stderr)
+        print("Type: utility", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Commands:", file=sys.stderr)
+        print("  init        Initialize a new CHANGELOG.md", file=sys.stderr)
+        print("  release     Convert Unreleased to versioned release", file=sys.stderr)
+        print("  validate    Validate CHANGELOG.md format", file=sys.stderr)
+        print("  show        Display current CHANGELOG.md", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Common workflow:", file=sys.stderr)
+        print("  ry-next changelog init                   # Create CHANGELOG.md", file=sys.stderr)
+        print("  ry-next changelog show --unreleased      # View pending changes", file=sys.stderr)
+        print("  ry-next changelog release 1.0.0          # Convert Unreleased to version", file=sys.stderr)
+        print("  ry-next changelog validate               # Check format", file=sys.stderr)

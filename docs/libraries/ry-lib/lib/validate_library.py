@@ -37,24 +37,24 @@ def validate_library(name: str, verbose: bool = False) -> bool:
     """
     lib_base = find_libraries_dir()
     if not lib_base:
-        print("❌ No libraries directory found", file=sys.stderr)
+        print("ERROR: No libraries directory found", file=sys.stderr)
         return False
     
     lib_dir = lib_base / name
     if not lib_dir.exists():
-        print(f"❌ Library not found: {name}", file=sys.stderr)
+        print(f"ERROR: Library not found: {name}", file=sys.stderr)
         return False
     
     lib_yaml = lib_dir / f"{name}.yaml"
     if not lib_yaml.exists():
-        print(f"❌ Missing {name}.yaml", file=sys.stderr)
+        print(f"ERROR: Missing {name}.yaml", file=sys.stderr)
         return False
     
     try:
         # Load library configuration
         data = load_yaml(lib_yaml)
         if not data:
-            print(f"❌ Could not load {name}.yaml", file=sys.stderr)
+            print(f"ERROR: Could not load {name}.yaml", file=sys.stderr)
             return False
         
         # Validate structure
@@ -87,12 +87,12 @@ def validate_library(name: str, verbose: bool = False) -> bool:
                     errors.append("meta.yaml missing name")
         
         if errors:
-            print(f"❌ {name}: Invalid", file=sys.stderr)
+            print(f"ERROR: {name}: Invalid", file=sys.stderr)
             for error in errors:
                 print(f"   - {error}", file=sys.stderr)
             return False
         
-        print(f"✅ {name}: Valid", file=sys.stderr)
+        print(f"SUCCESS: {name}: Valid", file=sys.stderr)
         
         if verbose:
             print(f"   Version: {data.get('version')}", file=sys.stderr)
@@ -106,7 +106,7 @@ def validate_library(name: str, verbose: bool = False) -> bool:
         return True
         
     except Exception as e:
-        print(f"❌ {name}: {e}", file=sys.stderr)
+        print(f"ERROR: {name}: {e}", file=sys.stderr)
         return False
 
 
@@ -122,7 +122,7 @@ def validate_all(verbose: bool = False) -> bool:
     """
     lib_base = find_libraries_dir()
     if not lib_base:
-        print("❌ No libraries directory found", file=sys.stderr)
+        print("ERROR: No libraries directory found", file=sys.stderr)
         return False
     
     # Find all library directories
@@ -132,7 +132,7 @@ def validate_all(verbose: bool = False) -> bool:
             libraries.append(item.name)
     
     if not libraries:
-        print("ℹ️  No libraries found", file=sys.stderr)
+        print("INFO: No libraries found", file=sys.stderr)
         return True
     
     failed = []
@@ -144,9 +144,9 @@ def validate_all(verbose: bool = False) -> bool:
         else:
             failed.append(lib_name)
     
-    print(f"✅ Validated {validated} libraries", file=sys.stderr)
+    print(f"SUCCESS: Validated {validated} libraries", file=sys.stderr)
     if failed:
-        print(f"❌ Failed: {', '.join(failed)}", file=sys.stderr)
+        print(f"ERROR: Failed: {', '.join(failed)}", file=sys.stderr)
         return False
     
     return True

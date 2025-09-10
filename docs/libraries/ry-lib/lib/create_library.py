@@ -40,7 +40,7 @@ def create_library(name: str, lib_type: str = 'utility', target: str = '') -> bo
     """
     # Validate name
     if not validate_name(name):
-        print(f"❌ Invalid library name: {name}", file=sys.stderr)
+        print(f"ERROR: Invalid library name: {name}", file=sys.stderr)
         print("   Use only letters, numbers, hyphens, and underscores", file=sys.stderr)
         return False
     
@@ -55,7 +55,7 @@ def create_library(name: str, lib_type: str = 'utility', target: str = '') -> bo
     
     # Check if library already exists
     if lib_dir.exists():
-        print(f"❌ Library {name} already exists", file=sys.stderr)
+        print(f"ERROR: Library {name} already exists", file=sys.stderr)
         return False
     
     try:
@@ -161,10 +161,10 @@ ry-next ry-lib init {name} --type {lib_type}
         with open(lib_dir / 'CHANGELOG.md', 'w') as f:
             f.write(changelog)
         
-        print(f"✅ Created library: {name}", file=sys.stderr)
-        print(f"ℹ️  Type: {lib_type}", file=sys.stderr)
+        print(f"SUCCESS: Created library: {name}", file=sys.stderr)
+        print(f"INFO: Type: {lib_type}", file=sys.stderr)
         print(f"   Location: {lib_dir}", file=sys.stderr)
-        print(f"📝 Next steps:", file=sys.stderr)
+        print(f"INFO: Next steps:", file=sys.stderr)
         print(f"   1. Edit {lib_dir}/{name}.yaml to add commands", file=sys.stderr)
         print(f"   2. Test with: ry-next {name} --ry-help", file=sys.stderr)
         print(f"   3. Install with: ry-next --install {name}", file=sys.stderr)
@@ -172,7 +172,7 @@ ry-next ry-lib init {name} --type {lib_type}
         return True
         
     except Exception as e:
-        print(f"❌ Failed to create library: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to create library: {e}", file=sys.stderr)
         return False
 
 

@@ -17,20 +17,19 @@ This guide defines consistent output patterns for all ry-tool libraries to ensur
 
 ## Message Prefixes
 
-Use these UTF-8 symbols consistently:
+Use these ASCII prefixes consistently for maximum compatibility:
 
 ```
-✅ Success/completion
-❌ Error/failure  
-📦 Building/packaging/processing
-📝 Info/next steps
-💡 Tips (sparingly, only when helpful)
-⚠️  Warning (potential issues)
-🔑 Security/authentication related
-📋 Review/preview required
-🌐 Network/server related
-ℹ️  Neutral information
-🔄 In progress/updating
+SUCCESS: Operation completed successfully
+ERROR:   Fatal error, operation failed
+BUILD:   Building/packaging/processing
+INFO:    General information or next steps
+TIP:     Helpful hints (use sparingly)
+WARNING: Potential issues (non-fatal)
+AUTH:    Security/authentication related
+REVIEW:  Preview/token required
+SERVER:  Network/remote operation
+UPDATE:  In progress/updating
 ```
 
 ## Standard Output Patterns
@@ -39,15 +38,15 @@ Use these UTF-8 symbols consistently:
 
 ```python
 # Simple success
-print("✅ Action completed", file=sys.stderr)
+print("SUCCESS: Action completed", file=sys.stderr)
 
 # Success with next step
-print("✅ Action completed", file=sys.stderr)
-print("📝 Next: ry-next [command]", file=sys.stderr)
+print("SUCCESS: Action completed", file=sys.stderr)
+print("INFO: Next: ry-next [command]", file=sys.stderr)
 
 # Success with multiple next steps
-print("✅ Version bumped to 1.2.0", file=sys.stderr)
-print("📝 Next steps:", file=sys.stderr)
+print("SUCCESS: Version bumped to 1.2.0", file=sys.stderr)
+print("INFO: Next steps:", file=sys.stderr)
 print("   1. ry-next ry-lib project sync", file=sys.stderr)
 print("   2. ry-next site-builder build", file=sys.stderr)
 print("   3. git add -A && git commit", file=sys.stderr)
@@ -57,16 +56,16 @@ print("   3. git add -A && git commit", file=sys.stderr)
 
 ```python
 # Simple error
-print("❌ File not found", file=sys.stderr)
+print("ERROR: File not found", file=sys.stderr)
 sys.exit(1)
 
 # Error with remedy
-print("❌ Project.yaml not found", file=sys.stderr)
+print("ERROR: Project.yaml not found", file=sys.stderr)
 print("   Run: ry-next ry-lib project init", file=sys.stderr)
 sys.exit(1)
 
 # Error with alternatives
-print("❌ Working directory not clean", file=sys.stderr)
+print("ERROR: Working directory not clean", file=sys.stderr)
 print("   Commit: git add -A && git commit", file=sys.stderr)
 print("   Or stash: git stash", file=sys.stderr)
 sys.exit(1)
@@ -76,12 +75,12 @@ sys.exit(1)
 
 ```python
 # Token generation
-print(f"📋 REVIEW_TOKEN={token}", file=sys.stderr)
+print(f"REVIEW: REVIEW_TOKEN={token}", file=sys.stderr)
 print(f"   Expires in {expires} seconds", file=sys.stderr)
 print(f"   Use: REVIEW_TOKEN={token} git commit -m 'message'", file=sys.stderr)
 
 # Missing token
-print("❌ Review required", file=sys.stderr)
+print("ERROR: Review required", file=sys.stderr)
 print("   Get token: git diff --staged --stat", file=sys.stderr)
 print("   Use: REVIEW_TOKEN=<token> git commit -m 'message'", file=sys.stderr)
 ```
@@ -90,13 +89,13 @@ print("   Use: REVIEW_TOKEN=<token> git commit -m 'message'", file=sys.stderr)
 
 ```python
 # Starting action
-print(f"📦 Building {package}...", file=sys.stderr)
+print(f"BUILD: Building {package}...", file=sys.stderr)
 
 # Multi-step process
-print("🔄 Step 1/3: Validating...", file=sys.stderr)
-print("🔄 Step 2/3: Building...", file=sys.stderr)
-print("🔄 Step 3/3: Packaging...", file=sys.stderr)
-print("✅ Complete", file=sys.stderr)
+print("UPDATE: Step 1/3: Validating...", file=sys.stderr)
+print("UPDATE: Step 2/3: Building...", file=sys.stderr)
+print("UPDATE: Step 3/3: Packaging...", file=sys.stderr)
+print("SUCCESS: Complete", file=sys.stderr)
 ```
 
 ## Command Help Format
@@ -140,7 +139,7 @@ commands:
 - Use 2 spaces for numbered lists
 
 ```python
-print("📝 Next steps:", file=sys.stderr)
+print("INFO: Next steps:", file=sys.stderr)
 print("  1. First step", file=sys.stderr)
 print("  2. Second step", file=sys.stderr)
 print("     With details", file=sys.stderr)  # 5 spaces for sub-items
@@ -158,25 +157,26 @@ print("     With details", file=sys.stderr)  # 5 spaces for sub-items
 
 ### File Staging (git add)
 ```python
-print("📝 Files staged", file=sys.stderr)
+print("INFO: Files staged", file=sys.stderr)
 print("   Review: git diff --staged --stat", file=sys.stderr)
-print("   Commit: REVIEW_TOKEN=<token> git commit -m 'message'", file=sys.stderr)
+print("   Get token: git diff --staged", file=sys.stderr)
+print("TIP: Use Task agent to summarize large changes", file=sys.stderr)
 ```
 
 ### Version Bumping
 ```python
-print(f"✅ Bumped {package}: {old} → {new}", file=sys.stderr)
-print("📝 Next steps:", file=sys.stderr)
+print(f"SUCCESS: Bumped {package}: {old} → {new}", file=sys.stderr)
+print("INFO: Next steps:", file=sys.stderr)
 print("   1. ry-next ry-lib project sync", file=sys.stderr)
 print("   2. ry-next site-builder build", file=sys.stderr)
 ```
 
 ### Build Operations
 ```python
-print("📦 Building...", file=sys.stderr)
+print("BUILD: Building...", file=sys.stderr)
 # ... build process ...
-print("✅ Build complete", file=sys.stderr)
-print("📝 Next: uv publish --dry-run", file=sys.stderr)
+print("SUCCESS: Build complete", file=sys.stderr)
+print("INFO: Next: uv publish --dry-run", file=sys.stderr)
 ```
 
 ### Interactive Prompts
@@ -188,50 +188,50 @@ response = input()  # stdin
 
 ## Anti-Patterns to Avoid
 
-### ❌ Too Verbose
+### Bad: Too Verbose
 ```python
 # BAD - Too much detail
-print("✅ Build complete (2 files)", file=sys.stderr)
+print("SUCCESS: Build complete (2 files)", file=sys.stderr)
 print("   - dist/package-1.0.0.tar.gz (24.8KiB)", file=sys.stderr)
 print("   - dist/package-1.0.0-py3-none-any.whl (30.4KiB)", file=sys.stderr)
 print("   1. Test locally: pip install dist/*.whl", file=sys.stderr)
 print("   2. Dry run: uv publish --dry-run", file=sys.stderr)
 ```
 
-### ✅ Concise
+### Good: Concise
 ```python
 # GOOD - Just what's needed
-print("✅ Build complete", file=sys.stderr)
-print("📝 Next: uv publish --dry-run", file=sys.stderr)
+print("SUCCESS: Build complete", file=sys.stderr)
+print("INFO: Next: uv publish --dry-run", file=sys.stderr)
 ```
 
-### ❌ Redundant Information
+### Bad: Redundant Information
 ```python
 # BAD - States the obvious
-print("✅ Successfully completed successfully", file=sys.stderr)
+print("SUCCESS: Successfully completed successfully", file=sys.stderr)
 print("   The build has finished building", file=sys.stderr)
 ```
 
-### ✅ Direct
+### Good: Direct
 ```python
 # GOOD - Clear and direct
-print("✅ Build complete", file=sys.stderr)
+print("SUCCESS: Build complete", file=sys.stderr)
 ```
 
-### ❌ Inconsistent Prefixes
+### Bad: Inconsistent Prefixes
 ```python
-# BAD - Mixed symbols
+# BAD - Mixed styles
 print(">> Building...", file=sys.stderr)
 print("[OK] Built", file=sys.stderr)
 print("==> Next steps:", file=sys.stderr)
 ```
 
-### ✅ Consistent
+### Good: Consistent
 ```python
-# GOOD - Consistent symbols
-print("📦 Building...", file=sys.stderr)
-print("✅ Built", file=sys.stderr)
-print("📝 Next steps:", file=sys.stderr)
+# GOOD - Consistent prefixes
+print("BUILD: Building...", file=sys.stderr)
+print("SUCCESS: Built", file=sys.stderr)
+print("INFO: Next steps:", file=sys.stderr)
 ```
 
 ## Common Implementation Patterns
@@ -244,20 +244,20 @@ execute:
       from pathlib import Path
       
       # Status to stderr
-      print("📦 Processing...", file=sys.stderr)
+      print("BUILD: Processing...", file=sys.stderr)
       
       # Data to stdout (only for 'show' type commands)
       print(yaml.dump(data))
       
       # Error handling
       if error:
-          print(f"❌ {error_msg}", file=sys.stderr)
+          print(f"ERROR: {error_msg}", file=sys.stderr)
           print(f"   Fix: {remedy}", file=sys.stderr)
           sys.exit(1)
       
       # Success with next steps
-      print("✅ Complete", file=sys.stderr)
-      print(f"📝 Next: ry-next {next_cmd}", file=sys.stderr)
+      print("SUCCESS: Complete", file=sys.stderr)
+      print(f"INFO: Next: ry-next {next_cmd}", file=sys.stderr)
 ```
 
 ### In Library Python Scripts (lib/*.py)
@@ -274,14 +274,14 @@ class MyHandler(LibraryBase):
     def process(self, item: str) -> bool:
         """Process with proper output patterns."""
         # Progress
-        self.info_message(f"📦 Processing {item}...")
+        print(f"BUILD: Processing {item}...", file=sys.stderr)
         
         try:
             # ... do work ...
             
             # Success
-            self.success_message("Complete")
-            self.info_message(f"📝 Next: ry-next {next_cmd}")
+            print("SUCCESS: Complete", file=sys.stderr)
+            print(f"INFO: Next: ry-next {next_cmd}", file=sys.stderr)
             return True
             
         except Exception as e:
@@ -312,7 +312,7 @@ When updating or creating a library:
 
 - [ ] All user messages go to stderr
 - [ ] Only data output goes to stdout
-- [ ] Use consistent emoji prefixes
+- [ ] Use consistent ASCII prefixes (SUCCESS:, ERROR:, etc.)
 - [ ] Include exact commands in error messages
 - [ ] Show next steps after success
 - [ ] Keep messages concise (one line when possible)
@@ -353,4 +353,5 @@ Before committing, test your output:
 
 ## Version History
 
-- v1.0 (2025-09-10): Initial style guide
+- v1.0 (2025-09-10): Initial style guide with emoji prefixes
+- v2.0 (2025-09-10): Updated to ASCII-only prefixes for compatibility

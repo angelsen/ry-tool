@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **OUTPUT_STYLE_GUIDE.md updated to v2.0** - ASCII-only prefixes for maximum compatibility
+  - Replaced emoji prefixes (✅ ❌ 📦 etc.) with ASCII prefixes (SUCCESS: ERROR: BUILD: etc.)
+  - Maintains all modern formatting improvements (indentation, remediation, next steps)
+  - Better compatibility with SSH, logs, CI/CD systems, and all terminals
+- **All production libraries updated to ASCII-only style**
+  - changelog library: 13 violations fixed
+  - ry-lib library: 54 violations fixed including templates
+  - site-builder library: 8 violations fixed
+  - git library: ~25 violations fixed
+  - uv library: 44 violations fixed
+  - Total: ~144 emoji/Unicode symbols replaced with ASCII prefixes
+- **Enforcement tools updated**
+  - ry-library-enforcer agent now enforces ASCII-only prefixes
+  - enforce-ry-style command updated to check for v2.0 compliance
+
+### Fixed
+- **Critical bug: RY_TOOL environment variable doesn't exist**
+  - Git library was using non-existent `{{env.RY_TOOL|/usr/bin/git}}` pattern
+  - Correct environment variable is `RY_TARGET` (from context.target field)
+  - Fixed git library to use `relay: native` for proper pass-through
+  - Updated all documentation to reflect correct augmentation patterns
+- **Augmentation library patterns corrected**
+  - Augmentation libraries should use `relay: native` not env variable templates
+  - Fixed enforcement tools to check for correct patterns
+
 ## [1.2.0] - 2025-09-10
 
 ### Added

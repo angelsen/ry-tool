@@ -118,10 +118,10 @@ if __name__ == "__main__":
     # Test token generation and verification
     import sys
     token, ttl = generate_review_token("test context")
-    print(f"Generated token: {token} (expires in {ttl}s)", file=sys.stderr)
+    print(f"INFO: Generated token: {token} (expires in {ttl}s)", file=sys.stderr)
     
     if verify_review_token(token):
-        print("Token verified and consumed", file=sys.stderr)
+        print("SUCCESS: Token verified and consumed", file=sys.stderr)
     
     if not verify_review_token(token):
-        print("Token invalid (already used)", file=sys.stderr)
+        print("INFO: Token invalid (already used)", file=sys.stderr)

@@ -25,14 +25,14 @@ commands:
                 
                 # Generate regular commit token
                 token, expires = generate_review_token("staged changes")
-                print(f"\n📋 REVIEW_TOKEN={token}", file=sys.stderr)
+                print(f"REVIEW: REVIEW_TOKEN={token}", file=sys.stderr)
                 print(f"   Expires in {expires} seconds", file=sys.stderr)
                 print(f"   Use: REVIEW_TOKEN={token} git commit -m 'message'", file=sys.stderr)
                 
                 # Also generate amend token
                 tm = TokenManager("git-amend")
                 amend_token, amend_expires = tm.generate_token("amend commit")
-                print(f"\n📝 AMEND_TOKEN={amend_token}", file=sys.stderr)
+                print(f"REVIEW: AMEND_TOKEN={amend_token}", file=sys.stderr)
                 print(f"   Expires in {amend_expires} seconds", file=sys.stderr)
                 print(f"   Use: AMEND_TOKEN={amend_token} git commit --amend", file=sys.stderr)
 
@@ -55,7 +55,7 @@ commands:
                 token = os.environ.get('AMEND_TOKEN', '')
                 
                 if not token:
-                    print("❌ Review changes before amending", file=sys.stderr)
+                    print("ERROR: Review changes before amending", file=sys.stderr)
                     print("   Run: git diff --staged", file=sys.stderr)
                     sys.exit(1)
                 
@@ -63,11 +63,11 @@ commands:
                 
                 tm = TokenManager("git-amend")
                 if not tm.verify_token(token):
-                    print("❌ Invalid or expired amend token", file=sys.stderr)
+                    print("ERROR: Invalid or expired amend token", file=sys.stderr)
                     print("   Generate with: git diff --staged", file=sys.stderr)
                     sys.exit(1)
                 
-                print("✅ Amend token verified", file=sys.stderr)
+                print("SUCCESS: Amend token verified", file=sys.stderr)
             
             # If message provided, validate it
             - python: |
@@ -79,18 +79,17 @@ commands:
                     
                     # Show warnings but don't block
                     for warning in warnings:
-                        print(f"⚠️  {warning}", file=sys.stderr)
+                        print(f"WARNING: {warning}", file=sys.stderr)
                     
                     # Update the flag with cleaned message
                     flags['m'] = cleaned
                     if cleaned != message:
-                        print(f"✏️  Message cleaned", file=sys.stderr)
+                        print("INFO: Message cleaned", file=sys.stderr)
           
           relay: native
           
           after:
-            - shell: |
-                echo "✅ Commit amended successfully" >&2
+            - shell: 'echo "SUCCESS: Commit amended successfully" >&2'
       
       # Regular commit (not amend)
       - default:
@@ -106,7 +105,7 @@ commands:
                 token = os.environ.get('REVIEW_TOKEN', '')
                 
                 if not token:
-                    print("❌ Review staged changes first", file=sys.stderr)
+                    print("ERROR: Review staged changes first", file=sys.stderr)
                     print("   Run: git diff --staged", file=sys.stderr)
                     print("   Then: REVIEW_TOKEN=<token> git commit -m 'message'", file=sys.stderr)
                     sys.exit(1)
@@ -114,11 +113,11 @@ commands:
                 from token_manager import verify_review_token
                 
                 if not verify_review_token(token):
-                    print("❌ Invalid or expired token", file=sys.stderr)
+                    print("ERROR: Invalid or expired token", file=sys.stderr)
                     print("   Run: git diff --staged", file=sys.stderr)
                     sys.exit(1)
                 
-                print("✅ Review token verified", file=sys.stderr)
+                print("SUCCESS: Review token verified", file=sys.stderr)
             
             # Validate and clean commit message
             - python: |
@@ -130,18 +129,17 @@ commands:
                 
                 # Show warnings but don't block
                 for warning in warnings:
-                    print(f"⚠️  {warning}", file=sys.stderr)
+                    print(f"WARNING: {warning}", file=sys.stderr)
                 
                 # Update the flag with cleaned message
                 flags['m'] = cleaned
                 if cleaned != message:
-                    print(f"✏️  Message cleaned", file=sys.stderr)
+                    print("INFO: Message cleaned", file=sys.stderr)
           
           relay: native
           
           after:
-            - shell: |
-                echo "✅ Committed successfully" >&2
+            - shell: 'echo "SUCCESS: Committed successfully" >&2'
 
   # Tag with changelog integration for version tags
   tag:
@@ -184,11 +182,11 @@ commands:
                     from changelog_core import has_unreleased_content
                     
                     if not has_unreleased_content():
-                        print("❌ CHANGELOG.md has no unreleased changes", file=sys.stderr)
+                        print("ERROR: CHANGELOG.md has no unreleased changes", file=sys.stderr)
                         print("   Add your changes under [Unreleased] section", file=sys.stderr)
                         print("   Then tag with: git tag " + tag_name, file=sys.stderr)
                         sys.exit(1)
-                    print(f"📝 Releasing version {version} in changelog...", file=sys.stderr)
+                    print(f"BUILD: Releasing version {version} in changelog...", file=sys.stderr)
                     
                     # Use changelog library directly
                     from changelog_core import release_version
@@ -200,16 +198,16 @@ commands:
                             ['/usr/bin/git', 'commit', '-m', f'chore: release version {version}'],
                             check=False
                         )
-                        print(f"✅ Changelog updated for {version}", file=sys.stderr)
+                        print(f"SUCCESS: Changelog updated for {version}", file=sys.stderr)
                     else:
-                        print(f"⚠️  Could not update changelog: {result.stderr}", file=sys.stderr)
+                        print(f"WARNING: Could not update changelog: {result.stderr}", file=sys.stderr)
           
           relay: native
           
           after:
             - shell: |
-                echo "📦 Tagged: {{arguments.tagname}}" >&2
-                echo "   Push with: git push origin {{arguments.tagname}}" >&2
+                echo "SUCCESS: Tagged: {{arguments.tagname}}" >&2
+                echo "INFO: Push with: git push origin {{arguments.tagname}}" >&2
       
       # Default: just pass through
       - default:
@@ -226,7 +224,7 @@ commands:
             
             # Skip warnings for --dry-run
             if flags.get('dry-run'):
-                print("🔍 Preview mode - showing what would be pushed", file=sys.stderr)
+                print("INFO: Preview mode - showing what would be pushed", file=sys.stderr)
                 sys.exit(0)  # Let native git handle the dry-run
             
             # Get current branch
@@ -243,7 +241,7 @@ commands:
             if branch in protected:
                 # Only warn if not explicitly specified
                 if branch not in str(remaining_args) and 'origin' not in str(remaining_args):
-                    print(f"⚠️  Direct push to {branch} branch", file=sys.stderr)
+                    print(f"WARNING: Direct push to {branch} branch", file=sys.stderr)
                     print(f"   Consider creating a feature branch:", file=sys.stderr)
                     print(f"     git checkout -b feature/name", file=sys.stderr)
                     print(f"     git push -u origin feature/name", file=sys.stderr)
@@ -259,9 +257,9 @@ commands:
             
             # Success message (won't run for --dry-run as we exit early)
             if flags.get('tags') or flags.get('follow-tags'):
-                print("✅ Pushed with tags", file=sys.stderr)
+                print("SUCCESS: Pushed with tags", file=sys.stderr)
             else:
-                print("✅ Pushed successfully", file=sys.stderr)
+                print("SUCCESS: Pushed successfully", file=sys.stderr)
   
   # Add command - augment to show hint after staging
   add:
@@ -270,10 +268,12 @@ commands:
       after:
         - shell: |
             if [ -n "$(/usr/bin/git diff --staged --name-only 2>/dev/null)" ]; then
-                echo "📝 Files staged" >&2
+                echo "INFO: Files staged" >&2
                 echo "   Review: git diff --staged --stat" >&2
                 echo "   Get token: git diff --staged" >&2
-                echo "💡 Tip: Use Task agent to summarize large changes" >&2
+                echo "TIP: Use Task agent to summarize large changes" >&2
             fi
   
-  # All other git commands automatically relay to native git
+  # Default: pass through all other git commands
+  default:
+    relay: native

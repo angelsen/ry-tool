@@ -19,7 +19,7 @@ def init_changelog(project_name: str = None) -> bool:
     changelog_path = Path('CHANGELOG.md')
     
     if changelog_path.exists():
-        print("❌ CHANGELOG.md already exists", file=sys.stderr)
+        print("ERROR: CHANGELOG.md already exists", file=sys.stderr)
         return False
     
     title = f"# Changelog"
@@ -40,11 +40,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     try:
         with open(changelog_path, 'w') as f:
             f.write(content)
-        print("✅ Created CHANGELOG.md", file=sys.stderr)
-        print("📝 Next: Edit CHANGELOG.md to add your changes", file=sys.stderr)
+        print("SUCCESS: Created CHANGELOG.md", file=sys.stderr)
+        print("INFO: Next: Edit CHANGELOG.md to add your changes", file=sys.stderr)
         return True
     except Exception as e:
-        print(f"❌ Failed to create changelog: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to create changelog: {e}", file=sys.stderr)
         return False
 
 
@@ -62,7 +62,7 @@ def release_version(version: str, release_date: str = None) -> bool:
     changelog_path = Path('CHANGELOG.md')
     
     if not changelog_path.exists():
-        print("❌ CHANGELOG.md not found", file=sys.stderr)
+        print("ERROR: CHANGELOG.md not found", file=sys.stderr)
         print("   Run: ry-next changelog init", file=sys.stderr)
         return False
     
@@ -78,7 +78,7 @@ def release_version(version: str, release_date: str = None) -> bool:
         new_header = f'## [{version}] - {release_date}'
         
         if old_header not in content:
-            print("❌ No [Unreleased] section found", file=sys.stderr)
+            print("ERROR: No [Unreleased] section found", file=sys.stderr)
             print("   Add: ## [Unreleased] section to CHANGELOG.md", file=sys.stderr)
             return False
         
@@ -97,12 +97,12 @@ def release_version(version: str, release_date: str = None) -> bool:
         with open(changelog_path, 'w') as f:
             f.write('\n'.join(lines))
         
-        print(f"✅ Released version {version}", file=sys.stderr)
-        print("📝 Next: git add CHANGELOG.md && git commit -m 'chore: release v{version}'".format(version=version), file=sys.stderr)
+        print(f"SUCCESS: Released version {version}", file=sys.stderr)
+        print("INFO: Next: git add CHANGELOG.md && git commit -m 'chore: release v{version}'".format(version=version), file=sys.stderr)
         return True
         
     except Exception as e:
-        print(f"❌ Failed to release version: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to release version: {e}", file=sys.stderr)
         return False
 
 
@@ -151,7 +151,7 @@ def validate_changelog() -> bool:
     changelog_path = Path('CHANGELOG.md')
     
     if not changelog_path.exists():
-        print("❌ CHANGELOG.md not found", file=sys.stderr)
+        print("ERROR: CHANGELOG.md not found", file=sys.stderr)
         print("   Run: ry-next changelog init", file=sys.stderr)
         return False
     
@@ -176,18 +176,18 @@ def validate_changelog() -> bool:
                 sections_found.append(section)
         
         if issues:
-            print("❌ Validation failed:", file=sys.stderr)
+            print("ERROR: Validation failed:", file=sys.stderr)
             for issue in issues:
                 print(f"   - {issue}", file=sys.stderr)
             return False
         
-        print("✅ CHANGELOG.md is valid", file=sys.stderr)
+        print("SUCCESS: CHANGELOG.md is valid", file=sys.stderr)
         if sections_found:
-            print(f"ℹ️  Sections: {', '.join(sections_found)}", file=sys.stderr)
+            print(f"INFO: Sections: {', '.join(sections_found)}", file=sys.stderr)
         return True
         
     except Exception as e:
-        print(f"❌ Failed to validate: {e}", file=sys.stderr)
+        print(f"ERROR: Failed to validate: {e}", file=sys.stderr)
         return False
 
 
