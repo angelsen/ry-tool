@@ -342,7 +342,7 @@
 <div class="library-card">
 <span class="version">1.0.0</span>
 <h3>ry-lib</h3>
-<p>Library development and management for ry-next</p>
+<p>Library development and management for ry</p>
 <div class="commands">
 <span class="command">init</span>
 <span class="command">validate</span>
@@ -387,20 +387,20 @@
 <pre><code>
 pip install -e .
 </code></pre>
-<p>This installs the <code>ry-next</code> command globally.</p>
+<p>This installs the <code>ry</code> command globally.</p>
 <h3>Quick Start</h3>
 <pre><code>
 # List available libraries
-ry-next --list
+ry --list
 
 # Get help for a library
-ry-next git --ry-help
+ry git --ry-help
 
 # Execute augmented command
-ry-next git commit -m "feat: new feature"
+ry git commit -m "feat: new feature"
 
 # Show execution plan (dry run)
-ry-next --ry-run git commit -m "test"
+ry --ry-run git commit -m "test"
 </code></pre>
 <h3>Production Libraries</h3>
 <p>- **git** - Enhanced git workflow with review tokens and commit validation</p>
@@ -413,7 +413,7 @@ ry-next --ry-run git commit -m "test"
 <p>- [Examples](examples/README.md)</p>
 <h3>Project Structure</h3>
 <pre><code>
-ry-next/
+ry/
 ├── src/ry_next/         # Core implementation
 ├── docs/
 │   ├── libraries/       # Production libraries
@@ -456,7 +456,7 @@ REVIEW_TOKEN=xxx git commit -m "message"
         </main>
         
         <footer>
-            <a href="https://github.com/angelsen/ry-tool">View on GitHub</a> | Generated with ry-next site-builder
+            <a href="https://github.com/angelsen/ry-tool">View on GitHub</a> | Generated with ry site-builder
         </footer>
     </div>
     

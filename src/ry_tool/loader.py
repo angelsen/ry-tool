@@ -32,8 +32,8 @@ class LibraryLoader:
     Search order (first match wins):
     1. Direct file path (*.yaml)
     2. Local workspace (./docs/libraries/, ./libraries/)
-    3. User libraries (~/.local/share/ry-next/libraries/)
-    4. System libraries (/usr/local/share/ry-next/libraries/)
+    3. User libraries (~/.local/share/ry/libraries/)
+    4. System libraries (/usr/local/share/ry/libraries/)
     5. Online registry (future)
     """
     
@@ -45,7 +45,7 @@ class LibraryLoader:
             library_paths: List of directories to search for libraries
         """
         self.registry_url = os.environ.get('RY_REGISTRY_URL', None)
-        self._cache_dir = Path.home() / '.cache' / 'ry-next' / 'libraries'
+        self._cache_dir = Path.home() / '.cache' / 'ry' / 'libraries'
         self.library_paths = library_paths or self._default_paths()
     
     def _default_paths(self) -> List[Path]:
@@ -58,14 +58,14 @@ class LibraryLoader:
         
         # 2. User libraries
         xdg_data = os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")
-        paths.append(Path(xdg_data) / "ry-next" / "libraries")
+        paths.append(Path(xdg_data) / "ry" / "libraries")
         
         # 3. User config
         xdg_config = os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")
-        paths.append(Path(xdg_config) / "ry-next" / "libraries")
+        paths.append(Path(xdg_config) / "ry" / "libraries")
         
         # 4. System libraries
-        paths.append(Path("/usr/local/share/ry-next/libraries"))
+        paths.append(Path("/usr/local/share/ry/libraries"))
         
         # 5. Cached online libraries
         paths.append(self._cache_dir)

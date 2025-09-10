@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Version management for ry-next libraries."""
+"""Version management for ry libraries."""
 
 import sys
 import yaml
@@ -179,7 +179,7 @@ def check_version_changes() -> bool:
         print("ERROR: Libraries changed without version bump:", file=sys.stderr)
         for lib in missing_bumps:
             print(f"   - {lib}", file=sys.stderr)
-        print("   Run: ry-next ry-lib bump <library> --type patch", file=sys.stderr)
+        print("   Run: ry ry-lib bump <library> --type patch", file=sys.stderr)
         return False
     
     return True

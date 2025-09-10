@@ -18,7 +18,7 @@ class LibraryInstaller:
     def __init__(self):
         """Initialize installer with user install directory."""
         xdg_data = os.environ.get("XDG_DATA_HOME", Path.home() / ".local/share")
-        self.install_dir = Path(xdg_data) / "ry-next" / "libraries"
+        self.install_dir = Path(xdg_data) / "ry" / "libraries"
         self.install_dir.mkdir(parents=True, exist_ok=True)
         
         # Track installed libraries

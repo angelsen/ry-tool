@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-ry-next (formerly ry-tool) is a command augmentation framework that wraps and enhances existing CLI tools without breaking their native behavior. It intercepts commands, adds validation, safety checks, and workflow enhancements, then relays to the original tool.
+ry is a command augmentation framework that wraps and enhances existing CLI tools without breaking their native behavior. It intercepts commands, adds validation, safety checks, and workflow enhancements, then relays to the original tool.
 
 ## Core Architecture
 
@@ -27,7 +27,7 @@ The codebase follows a clean modular architecture with single-responsibility com
 Libraries are YAML files defining command augmentations, located in:
 - `docs/libraries/` - Production libraries with support modules
 - `examples/` - Example libraries for reference
-- `~/.local/share/ry-next/libraries/` - User-installed libraries
+- `~/.local/share/ry/libraries/` - User-installed libraries
 
 Each library follows this structure:
 ```
@@ -62,18 +62,18 @@ uv build
 python -m ry_tool --version
 
 # List available libraries
-ry-next --list
+ry --list
 
 # Show execution plan (dry run)
-ry-next --ry-run <command>
+ry --ry-run <command>
 
 # Install a library
-ry-next --install <library>
+ry --install <library>
 
 # Library development
-python docs/libraries/ry-lib/lib/create_library.py <name> <type>
-python docs/libraries/ry-lib/lib/validate_library.py <name>
-python docs/libraries/ry-lib/lib/registry_builder.py
+ry ry-lib create <name> <type>
+ry ry-lib validate <name>
+ry ry-lib registry build
 ```
 
 ## Important Implementation Notes
@@ -83,11 +83,14 @@ python docs/libraries/ry-lib/lib/registry_builder.py
 - Template processing supports nested structures and environment variables
 - The matcher supports both exact commands and wildcard patterns
 - Relay can be "native" (pass to target), "none" (no relay), or custom command
+- Augmentation libraries use `relay: native` not environment variable patterns
+- The correct environment variable for target is `RY_TARGET` (not RY_TOOL)
 
-## Current Development Status
+## Project Structure
 
-The project is transitioning from v1 (ry-tool) to v2 (ry-next) format:
-- `_archive/` contains deprecated v1 code
-- Active development is in `src/ry_tool/` with v2.0 library format
-- Production libraries are in `docs/libraries/`
-- The command is installed as `ry-next`
+- `src/ry_tool/` - Core implementation (v2.0 library format)
+- `docs/libraries/` - Production libraries
+- `docs/ARCHITECTURE.md` - Technical architecture documentation
+- `examples/` - Example libraries
+- `_archive/` - Deprecated v1 code (not used)
+- The command is installed as `ry`

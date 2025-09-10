@@ -5,9 +5,9 @@ target: "{{target}}"
 description: "{{description}}"
 
 workflows:
-  - "ry-next {{name}} status                 # Check status"
-  - "ry-next {{name}} validate --dry-run      # Preview changes"
-  - "ry-next {{name}} process                 # Execute"
+  - "ry {{name}} status                 # Check status"
+  - "ry {{name}} validate --dry-run      # Preview changes"
+  - "ry {{name}} process                 # Execute"
 
 commands:
   status:

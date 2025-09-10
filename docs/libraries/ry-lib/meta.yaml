@@ -1,7 +1,7 @@
 name: ry-lib
 version: 1.0.0
-description: Library development and management for ry-next
-author: ry-next
+description: Library development and management for ry
+author: ry
 created: 2025-01-10
 updated: 2025-01-10
 dependencies: []

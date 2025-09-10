@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate ry-next library structure and content."""
+"""Validate ry library structure and content."""
 
 import sys
 import yaml

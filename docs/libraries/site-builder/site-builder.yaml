@@ -4,10 +4,10 @@ type: library
 description: Static site generator from project.yaml manifests
 
 workflows:
-  - "ry-next ry-lib project init             # Create project.yaml"
-  - "ry-next site-builder build              # Generate site"
-  - "ry-next site-builder build --theme terminal  # Use terminal theme"
-  - "ry-next site-builder clean              # Remove generated files"
+  - "ry ry-lib project init             # Create project.yaml"
+  - "ry site-builder build              # Generate site"
+  - "ry site-builder build --theme terminal  # Use terminal theme"
+  - "ry site-builder clean              # Remove generated files"
 
 commands:
   build:
@@ -35,7 +35,7 @@ commands:
           config_file = flags.get('config', 'project.yaml')
           if not Path(config_file).exists():
               print(f"ERROR: {config_file} not found", file=sys.stderr)
-              print("   Run: ry-next ry-lib project init", file=sys.stderr)
+              print("   Run: ry ry-lib project init", file=sys.stderr)
               sys.exit(1)
           
           builder = SiteBuilder()
@@ -88,7 +88,7 @@ commands:
           print("  clean        Remove generated site files", file=sys.stderr)
           print("", file=sys.stderr)
           print("Common workflow:", file=sys.stderr)
-          print("  ry-next ry-lib project init             # Create project.yaml", file=sys.stderr)
-          print("  ry-next site-builder build              # Generate site", file=sys.stderr)
-          print("  ry-next site-builder build --theme terminal  # Use terminal theme", file=sys.stderr)
-          print("  ry-next site-builder clean              # Remove generated files", file=sys.stderr)
+          print("  ry ry-lib project init             # Create project.yaml", file=sys.stderr)
+          print("  ry site-builder build              # Generate site", file=sys.stderr)
+          print("  ry site-builder build --theme terminal  # Use terminal theme", file=sys.stderr)
+          print("  ry site-builder clean              # Remove generated files", file=sys.stderr)

@@ -4,23 +4,23 @@
 
 ```bash
 # 1. Stage changes
-ry-next git add -A
+ry git add -A
 
 # 2. Review and get token
-ry-next git diff --staged --stat
+ry git diff --staged --stat
 
 # 3. Commit with token
-REVIEW_TOKEN=xxx ry-next git commit -m "feat: your message"
+REVIEW_TOKEN=xxx ry git commit -m "feat: your message"
 
 # 4. Update CHANGELOG.md manually under [Unreleased]
 
 # 5. Bump version
-ry-next uv version --bump minor --dry-run
-BUMP_TOKEN=xxx ry-next uv version --bump minor
+ry uv version --bump minor --dry-run
+BUMP_TOKEN=xxx ry uv version --bump minor
 
 # 6. Sync and rebuild docs
-ry-next ry-lib project sync
-ry-next site-builder build
+ry ry-lib project sync
+ry site-builder build
 
 # 7. Commit version bump
 git add -A && git diff --staged --stat
@@ -30,9 +30,9 @@ REVIEW_TOKEN=xxx git commit -m "chore: bump version and update docs"
 git push origin master && git push origin --tags
 
 # 9. Publish to PyPI
-ry-next uv build
-ry-next uv publish --dry-run
-PUBLISH_TOKEN=xxx ry-next uv publish
+ry uv build
+ry uv publish --dry-run
+PUBLISH_TOKEN=xxx ry uv publish
 ```
 
 ## Architecture
@@ -66,7 +66,7 @@ type: utility|augmentation
 target: /usr/bin/tool  # For augmentation only
 description: Brief description
 workflows:  # Common usage examples
-  - "ry-next lib cmd1  # Description"
+  - "ry lib cmd1  # Description"
 commands:
   command-name:
     description: Brief description
@@ -99,7 +99,7 @@ commands:
 ```python
 # Success with next steps
 print("✅ Action completed", file=sys.stderr)
-print("📝 Next: ry-next [command]", file=sys.stderr)
+print("📝 Next: ry [command]", file=sys.stderr)
 
 # Error with remedy
 print("❌ Error description", file=sys.stderr)
@@ -138,16 +138,16 @@ Tokens expire in 300 seconds (5 minutes).
 
 ```bash
 # Create test library
-cd /tmp && ry-next ry-lib init test-lib --type utility
+cd /tmp && ry ry-lib init test-lib --type utility
 
 # Validate all libraries
-ry-next ry-lib validate --all
+ry ry-lib validate --all
 
 # Test library help
-ry-next LIBRARY --ry-help
+ry LIBRARY --ry-help
 
 # Show execution plan
-ry-next --ry-run LIBRARY command
+ry --ry-run LIBRARY command
 ```
 
 ## Key Principles

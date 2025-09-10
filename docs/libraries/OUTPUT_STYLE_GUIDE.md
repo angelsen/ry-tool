@@ -42,13 +42,13 @@ print("SUCCESS: Action completed", file=sys.stderr)
 
 # Success with next step
 print("SUCCESS: Action completed", file=sys.stderr)
-print("INFO: Next: ry-next [command]", file=sys.stderr)
+print("INFO: Next: ry [command]", file=sys.stderr)
 
 # Success with multiple next steps
 print("SUCCESS: Version bumped to 1.2.0", file=sys.stderr)
 print("INFO: Next steps:", file=sys.stderr)
-print("   1. ry-next ry-lib project sync", file=sys.stderr)
-print("   2. ry-next site-builder build", file=sys.stderr)
+print("   1. ry ry-lib project sync", file=sys.stderr)
+print("   2. ry site-builder build", file=sys.stderr)
 print("   3. git add -A && git commit", file=sys.stderr)
 ```
 
@@ -61,7 +61,7 @@ sys.exit(1)
 
 # Error with remedy
 print("ERROR: Project.yaml not found", file=sys.stderr)
-print("   Run: ry-next ry-lib project init", file=sys.stderr)
+print("   Run: ry ry-lib project init", file=sys.stderr)
 sys.exit(1)
 
 # Error with alternatives
@@ -114,9 +114,9 @@ Commands:
   command3        Action verb phrase
 
 Common workflow:
-  ry-next lib init           # Initialize project
-  ry-next lib build          # Build artifacts
-  ry-next lib publish        # Publish to registry
+  ry lib init           # Initialize project
+  ry lib build          # Build artifacts
+  ry lib publish        # Publish to registry
 ```
 
 ### Command-Specific Help
@@ -167,8 +167,8 @@ print("TIP: Use Task agent to summarize large changes", file=sys.stderr)
 ```python
 print(f"SUCCESS: Bumped {package}: {old} → {new}", file=sys.stderr)
 print("INFO: Next steps:", file=sys.stderr)
-print("   1. ry-next ry-lib project sync", file=sys.stderr)
-print("   2. ry-next site-builder build", file=sys.stderr)
+print("   1. ry ry-lib project sync", file=sys.stderr)
+print("   2. ry site-builder build", file=sys.stderr)
 ```
 
 ### Build Operations
@@ -257,7 +257,7 @@ execute:
       
       # Success with next steps
       print("SUCCESS: Complete", file=sys.stderr)
-      print(f"INFO: Next: ry-next {next_cmd}", file=sys.stderr)
+      print(f"INFO: Next: ry {next_cmd}", file=sys.stderr)
 ```
 
 ### In Library Python Scripts (lib/*.py)
@@ -281,7 +281,7 @@ class MyHandler(LibraryBase):
             
             # Success
             print("SUCCESS: Complete", file=sys.stderr)
-            print(f"INFO: Next: ry-next {next_cmd}", file=sys.stderr)
+            print(f"INFO: Next: ry {next_cmd}", file=sys.stderr)
             return True
             
         except Exception as e:

@@ -35,7 +35,7 @@ class ProjectManager(LibraryBase):
         project_file = Path('project.yaml')
         
         if not project_file.exists():
-            raise FileNotFoundError("project.yaml not found. Run: ry-next ry-lib project init")
+            raise FileNotFoundError("project.yaml not found. Run: ry ry-lib project init")
         
         project = self.file_manager.load_yaml(project_file)
         

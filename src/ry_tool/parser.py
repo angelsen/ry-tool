@@ -249,7 +249,7 @@ class CommandParser:
                         help_lines.append(f"  {workflow}")
                 
                 help_lines.append("")
-                help_lines.append("Use: ry-next <library> <command> --help for command details")
+                help_lines.append("Use: ry <library> <command> --help for command details")
         
         return '\n'.join(help_lines)
 

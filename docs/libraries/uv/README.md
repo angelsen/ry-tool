@@ -1,17 +1,17 @@
 # uv
 
-Uv library for ry-next
+Uv library for ry
 
 ## Installation
 
 ```bash
-ry-next --install uv
+ry --install uv
 ```
 
 ## Usage
 
 ```bash
-ry-next uv --ry-help
+ry uv --ry-help
 ```
 
 ## Commands
@@ -22,5 +22,5 @@ See `uv.yaml` for available commands.
 
 This library was created with ry-lib:
 ```bash
-ry-next ry-lib init uv --type augmentation
+ry ry-lib init uv --type augmentation
 ```

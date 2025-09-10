@@ -5,7 +5,7 @@ Static site generator that reads `project.yaml` manifests and generates beautifu
 ## Installation
 
 ```bash
-ry-next ry-lib install site-builder
+ry ry-lib install site-builder
 ```
 
 ## Usage
@@ -14,28 +14,28 @@ ry-next ry-lib install site-builder
 
 ```bash
 # Generate project.yaml from your project
-ry-next ry-lib project init
+ry ry-lib project init
 ```
 
 ### 2. Build site
 
 ```bash
 # Generate static site in docs/
-ry-next site-builder build
+ry site-builder build
 ```
 
 ### 3. Preview
 
 ```bash
 # Serve locally on http://localhost:8000
-ry-next site-builder serve
+ry site-builder serve
 ```
 
 ### 4. Watch mode
 
 ```bash
 # Auto-rebuild on changes
-ry-next site-builder watch
+ry site-builder watch
 ```
 
 ## Commands

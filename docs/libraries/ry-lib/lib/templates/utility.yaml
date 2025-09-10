@@ -4,10 +4,10 @@ type: utility
 description: "{{description}}"
 
 workflows:
-  - "ry-next {{name}} init                   # Initialize"
-  - "ry-next {{name}} status                 # Check status"
-  - "ry-next {{name}} process <input>        # Process data"
-  - "ry-next {{name}} list                   # List items"
+  - "ry {{name}} init                   # Initialize"
+  - "ry {{name}} status                 # Check status"
+  - "ry {{name}} process <input>        # Process data"
+  - "ry {{name}} list                   # List items"
 
 commands:
   init:
@@ -61,7 +61,7 @@ commands:
               print(f"   Config: {config_file} (ready)", file=sys.stderr)
           else:
               print(f"   Config: Not initialized", file=sys.stderr)
-              print(f"   Run: ry-next {{name}} init", file=sys.stderr)
+              print(f"   Run: ry {{name}} init", file=sys.stderr)
 
   process:
     description: Process input data

@@ -1,5 +1,5 @@
 """
-ry-next: Next generation command augmentation framework.
+ry: Next generation command augmentation framework.
 
 Clean architecture with semantic command understanding.
 """

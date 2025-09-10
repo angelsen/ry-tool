@@ -1,5 +1,5 @@
 """
-Entry point for ry-next when run as a module.
+Entry point for ry when run as a module.
 
 Usage: python -m ry_next
 """

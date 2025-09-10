@@ -14,7 +14,7 @@ class TokenManager:
     def __init__(self, namespace="git"):
         """Initialize with a namespace for tokens."""
         self.namespace = namespace
-        self.token_dir = Path.home() / '.cache' / 'ry-next' / 'tokens'
+        self.token_dir = Path.home() / '.cache' / 'ry' / 'tokens'
         self.token_dir.mkdir(parents=True, exist_ok=True)
         self.token_file = self.token_dir / f'{namespace}_tokens.json'
         self.ttl = 300  # 5 minutes

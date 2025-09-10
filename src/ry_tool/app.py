@@ -1,5 +1,5 @@
 """
-Main application for ry-next.
+Main application for ry.
 
 Purpose: Wire together all core modules to execute augmented commands.
 No package management, just pure command augmentation.
@@ -21,7 +21,7 @@ from .utils import ContextFactory
 
 
 # Create the CLI app
-app = CLI(name="ry-next", description="Next generation command augmentation")
+app = CLI(name="ry", description="Command augmentation framework")
 
 
 
@@ -31,9 +31,9 @@ app = CLI(name="ry-next", description="Next generation command augmentation")
 
 @app.command("--version", help="Show version")
 def show_version():
-    """Show ry-next version."""
+    """Show ry version."""
     from . import __version__
-    print(f"ry-next {__version__}")
+    print(f"ry {__version__}")
     return True
 
 
@@ -82,8 +82,8 @@ def list_libraries(installed: bool = False, verbose: bool = False):
         else:
             print("No libraries found")
             print("Add libraries to:")
-            print("  • ./docs_next/libraries/")
-            print("  • ~/.local/share/ry-next/libraries/")
+            print("  • ./docs/libraries/")
+            print("  • ~/.local/share/ry/libraries/")
     
     return True
 
@@ -94,8 +94,8 @@ def install_library(library_name: str):
     Install library from registry or local source.
     
     Examples:
-        ry-next --install git              # From registry
-        ry-next --install ./my-lib.yaml    # From local file
+        ry --install git              # From registry
+        ry --install ./my-lib.yaml    # From local file
     """
     installer = LibraryInstaller()
     loader = LibraryLoader()

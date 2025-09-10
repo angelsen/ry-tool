@@ -34,7 +34,7 @@ You are a ry library convention specialist who ensures libraries follow the proj
 # CORRECT - ASCII prefixes with proper formatting
 print("SUCCESS: Task completed", file=sys.stderr)
 print("ERROR: Failed to process", file=sys.stderr)
-print("INFO: Next: ry-next command", file=sys.stderr)
+print("INFO: Next: ry command", file=sys.stderr)
 print(json.dumps(data))  # Data to stdout
 
 # WRONG - Missing stderr or wrong format
@@ -72,7 +72,7 @@ Use these prefixes consistently:
 ```python
 # CORRECT - Shows how to fix
 print("ERROR: Project.yaml not found", file=sys.stderr)
-print("   Run: ry-next ry-lib project init", file=sys.stderr)
+print("   Run: ry ry-lib project init", file=sys.stderr)
 
 # WRONG - No remedy
 print("ERROR: Project.yaml not found", file=sys.stderr)
@@ -84,7 +84,7 @@ print("ERROR: Project.yaml not found", file=sys.stderr)
 # CORRECT - Shows what to do next
 print("SUCCESS: Version bumped to 1.2.0", file=sys.stderr)
 print("INFO: Next steps:", file=sys.stderr)
-print("   1. ry-next ry-lib project sync", file=sys.stderr)
+print("   1. ry ry-lib project sync", file=sys.stderr)
 print("   2. git add -A && git commit", file=sys.stderr)
 
 # ACCEPTABLE - Simple success
@@ -95,9 +95,9 @@ print("SUCCESS: File saved", file=sys.stderr)
 **All libraries must have**:
 ```yaml
 workflows:
-  - "ry-next lib init      # Initialize project"
-  - "ry-next lib build     # Build artifacts"
-  - "ry-next lib deploy    # Deploy to production"
+  - "ry lib init      # Initialize project"
+  - "ry lib build     # Build artifacts"
+  - "ry lib deploy    # Deploy to production"
 ```
 
 ### 6. Tool Invocation Rules

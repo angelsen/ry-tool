@@ -1,14 +1,14 @@
 version: "2.0"
 name: ry-lib
 type: utility
-description: Library development and management for ry-next
+description: Library development and management for ry
 
 workflows:
-  - "ry-next ry-lib init my-lib --type utility     # Create utility library"
-  - "ry-next ry-lib init my-git --type augmentation --target /usr/bin/git  # Augment git"
-  - "ry-next ry-lib validate --all                 # Validate all libraries"
-  - "ry-next ry-lib project init                   # Create project.yaml"
-  - "ry-next ry-lib bump my-lib --type patch       # Bump library version"
+  - "ry ry-lib init my-lib --type utility     # Create utility library"
+  - "ry ry-lib init my-git --type augmentation --target /usr/bin/git  # Augment git"
+  - "ry ry-lib validate --all                 # Validate all libraries"
+  - "ry ry-lib project init                   # Create project.yaml"
+  - "ry ry-lib bump my-lib --type patch       # Bump library version"
 
 commands:
   init:
@@ -125,7 +125,7 @@ commands:
           if flags.get('hook'):
               print("# Add to .git/hooks/pre-commit:")
               print("#!/bin/bash")
-              print("ry-next ry-lib check-versions || exit 1")
+              print("ry ry-lib check-versions || exit 1")
               sys.exit(0)
           
           from version_manager import check_version_changes
@@ -218,7 +218,7 @@ commands:
                   print("SUCCESS: Created project.yaml", file=sys.stderr)
                   print("INFO: Next steps:", file=sys.stderr)
                   print("   1. Edit to customize metadata", file=sys.stderr)
-                  print("   2. ry-next site-builder build", file=sys.stderr)
+                  print("   2. ry site-builder build", file=sys.stderr)
               else:
                   sys.exit(1)
       
@@ -230,7 +230,7 @@ commands:
               
               if not Path('project.yaml').exists():
                   print("ERROR: project.yaml not found", file=sys.stderr)
-                  print("   Run: ry-next ry-lib project init", file=sys.stderr)
+                  print("   Run: ry ry-lib project init", file=sys.stderr)
                   sys.exit(1)
               
               pm = ProjectManager()
@@ -254,7 +254,7 @@ commands:
               
               if not Path('project.yaml').exists():
                   print("ERROR: project.yaml not found", file=sys.stderr)
-                  print("   Run: ry-next ry-lib project init", file=sys.stderr)
+                  print("   Run: ry ry-lib project init", file=sys.stderr)
                   sys.exit(1)
               
               pm = ProjectManager()
@@ -274,7 +274,7 @@ commands:
               
               if not Path('project.yaml').exists():
                   print("ERROR: project.yaml not found", file=sys.stderr)
-                  print("   Run: ry-next ry-lib project init", file=sys.stderr)
+                  print("   Run: ry ry-lib project init", file=sys.stderr)
                   sys.exit(1)
               
               pm = ProjectManager()

@@ -1,5 +1,5 @@
 """
-Shared utilities for reducing boilerplate across ry-next modules.
+Shared utilities for reducing boilerplate across ry modules.
 
 Contains common patterns for error handling, subprocess execution,
 file operations, and other repetitive tasks.

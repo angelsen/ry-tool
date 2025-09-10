@@ -63,7 +63,7 @@ def release_version(version: str, release_date: str = None) -> bool:
     
     if not changelog_path.exists():
         print("ERROR: CHANGELOG.md not found", file=sys.stderr)
-        print("   Run: ry-next changelog init", file=sys.stderr)
+        print("   Run: ry changelog init", file=sys.stderr)
         return False
     
     if not release_date:
@@ -152,7 +152,7 @@ def validate_changelog() -> bool:
     
     if not changelog_path.exists():
         print("ERROR: CHANGELOG.md not found", file=sys.stderr)
-        print("   Run: ry-next changelog init", file=sys.stderr)
+        print("   Run: ry changelog init", file=sys.stderr)
         return False
     
     try:

@@ -4,10 +4,10 @@ type: utility
 description: Simple changelog initialization and release management
 
 workflows:
-  - "ry-next changelog init                   # Create CHANGELOG.md"
-  - "ry-next changelog show --unreleased      # View pending changes"
-  - "ry-next changelog release 1.0.0          # Convert Unreleased to version"
-  - "ry-next changelog validate               # Check format"
+  - "ry changelog init                   # Create CHANGELOG.md"
+  - "ry changelog show --unreleased      # View pending changes"
+  - "ry changelog release 1.0.0          # Convert Unreleased to version"
+  - "ry changelog validate               # Check format"
 
 commands:
   init:
@@ -72,7 +72,7 @@ commands:
           changelog = Path('CHANGELOG.md')
           if not changelog.exists():
               print("ERROR: CHANGELOG.md not found", file=sys.stderr)
-              print("   Run: ry-next changelog init", file=sys.stderr)
+              print("   Run: ry changelog init", file=sys.stderr)
               sys.exit(1)
           
           with open(changelog) as f:
@@ -119,7 +119,7 @@ default:
         print("  show        Display current CHANGELOG.md", file=sys.stderr)
         print("", file=sys.stderr)
         print("Common workflow:", file=sys.stderr)
-        print("  ry-next changelog init                   # Create CHANGELOG.md", file=sys.stderr)
-        print("  ry-next changelog show --unreleased      # View pending changes", file=sys.stderr)
-        print("  ry-next changelog release 1.0.0          # Convert Unreleased to version", file=sys.stderr)
-        print("  ry-next changelog validate               # Check format", file=sys.stderr)
+        print("  ry changelog init                   # Create CHANGELOG.md", file=sys.stderr)
+        print("  ry changelog show --unreleased      # View pending changes", file=sys.stderr)
+        print("  ry changelog release 1.0.0          # Convert Unreleased to version", file=sys.stderr)
+        print("  ry changelog validate               # Check format", file=sys.stderr)

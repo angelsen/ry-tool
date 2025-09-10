@@ -1,15 +1,15 @@
-# ry-next
+# ry
 
-A clean, modular command augmentation framework that enhances existing CLI tools without breaking their native behavior.
+A command augmentation framework that wraps and enhances existing CLI tools without breaking their native behavior.
 
 ## Features
 
-- **Command Augmentation**: Wrap and enhance existing CLI tools
+- **Command Augmentation**: Enhance existing CLI tools with validation, safety checks, and workflows
 - **Clean Architecture**: Modular design with single-responsibility components  
-- **Type-Safe Processing**: Recursive template processing with type dispatch
+- **Type-Safe Processing**: Recursive template processing with proper type dispatch
 - **Token-Based Safety**: Time-limited tokens for dangerous operations
 - **Library System**: Reusable command definitions with metadata
-- **No Shell Escaping**: Direct subprocess execution for safety
+- **Direct Execution**: No shell escaping for safety
 
 ## Installation
 
@@ -17,22 +17,22 @@ A clean, modular command augmentation framework that enhances existing CLI tools
 pip install -e .
 ```
 
-This installs the `ry-next` command globally.
+This installs the `ry` command globally.
 
 ## Quick Start
 
 ```bash
 # List available libraries
-ry-next --list
+ry --list
 
 # Get help for a library
-ry-next git --ry-help
+ry git --ry-help
 
 # Execute augmented command
-ry-next git commit -m "feat: new feature"
+ry git commit -m "feat: new feature"
 
 # Show execution plan (dry run)
-ry-next --ry-run git commit -m "test"
+ry --ry-run git commit -m "test"
 ```
 
 ## Production Libraries
@@ -41,28 +41,11 @@ ry-next --ry-run git commit -m "test"
 - **uv** - Python package management with automated version workflows
 - **changelog** - Simple changelog management following Keep a Changelog
 - **ry-lib** - Library development and management tools
+- **site-builder** - Static documentation site generator
 
-## Documentation
+## Library System
 
-- [Full Documentation](docs/README_RYNEXT.md)
-- [Library Development](docs/libraries/ry-lib/README.md)
-- [Examples](examples/README.md)
-
-## Project Structure
-
-```
-ry-next/
-├── src/ry_next/         # Core implementation
-├── docs/
-│   ├── libraries/       # Production libraries
-│   └── README_RYNEXT.md # Full documentation
-├── examples/            # Example libraries
-└── _archive/            # Old ry-tool code (deprecated)
-```
-
-## Key Concepts
-
-### Library Format (v2.0)
+### Example: Git Enhancement
 
 ```yaml
 version: "2.0"
@@ -87,15 +70,46 @@ Critical operations require preview and token verification:
 
 ```bash
 # Preview changes
-git diff --staged  # → Generates REVIEW_TOKEN
+ry git diff --staged  # → Generates REVIEW_TOKEN
 
 # Execute with token
-REVIEW_TOKEN=xxx git commit -m "message"
+REVIEW_TOKEN=xxx ry git commit -m "message"
+```
+
+## Project Structure
+
+```
+ry-tool/
+├── src/ry_tool/         # Core implementation
+├── docs/
+│   ├── libraries/       # Production libraries
+│   └── ARCHITECTURE.md  # Technical documentation
+├── examples/            # Example libraries
+└── CLAUDE.md           # AI assistant guidance
 ```
 
 ## Development
 
-See [docs/README_RYNEXT.md](docs/README_RYNEXT.md) for complete documentation.
+```bash
+# Run linter
+ruff check src/ry_tool/ --fix
+
+# Build distribution
+uv build
+
+# Create a new library
+ry ry-lib create <name> <type>
+
+# Validate libraries
+ry ry-lib validate --all
+```
+
+## Documentation
+
+- [Architecture Guide](docs/ARCHITECTURE.md) - Technical details and design
+- [Library Development](docs/libraries/ry-lib/README.md) - Creating custom libraries
+- [Examples](examples/README.md) - Working examples
+- [Style Guide](docs/libraries/OUTPUT_STYLE_GUIDE.md) - Output formatting standards
 
 ## License
 

@@ -13,7 +13,7 @@ A minimal utility for managing CHANGELOG.md files:
 ## Installation
 
 ```bash
-ry-next --install changelog
+ry --install changelog
 ```
 
 ## Commands
@@ -22,10 +22,10 @@ ry-next --install changelog
 
 ```bash
 # Basic initialization
-ry-next changelog init
+ry changelog init
 
 # With project name
-ry-next changelog init --name "My Project"
+ry changelog init --name "My Project"
 ```
 
 Creates a standard CHANGELOG.md with an [Unreleased] section.
@@ -34,10 +34,10 @@ Creates a standard CHANGELOG.md with an [Unreleased] section.
 
 ```bash
 # Release with today's date
-ry-next changelog release 1.0.0
+ry changelog release 1.0.0
 
 # Release with specific date
-ry-next changelog release 2.0.0 --date 2025-01-01
+ry changelog release 2.0.0 --date 2025-01-01
 ```
 
 Converts the [Unreleased] section to a versioned release and creates a new [Unreleased] section.
@@ -45,7 +45,7 @@ Converts the [Unreleased] section to a versioned release and creates a new [Unre
 ### `validate` - Check format
 
 ```bash
-ry-next changelog validate
+ry changelog validate
 ```
 
 Validates that CHANGELOG.md follows the expected format.
@@ -54,20 +54,20 @@ Validates that CHANGELOG.md follows the expected format.
 
 ```bash
 # Show entire changelog
-ry-next changelog show
+ry changelog show
 
 # Show only unreleased changes
-ry-next changelog show --unreleased
+ry changelog show --unreleased
 
 # Show latest version
-ry-next changelog show --latest
+ry changelog show --latest
 ```
 
 ## Workflow
 
 ```bash
 # 1. Initialize once
-ry-next changelog init
+ry changelog init
 
 # 2. Edit CHANGELOG.md manually as you work
 vim CHANGELOG.md
@@ -75,13 +75,13 @@ vim CHANGELOG.md
 # - Added, Changed, Deprecated, Removed, Fixed, Security
 
 # 3. When ready to release
-ry-next changelog release 1.0.0
+ry changelog release 1.0.0
 
 # 4. Continue editing for next release
 vim CHANGELOG.md
 
 # 5. Release again
-ry-next changelog release 1.1.0
+ry changelog release 1.1.0
 ```
 
 ## Philosophy

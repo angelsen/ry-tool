@@ -1,10 +1,10 @@
 # ry-lib
 
-Library development and management for ry-next.
+Library development and management for ry.
 
 ## Overview
 
-ry-lib is the foundational library for creating and managing other ry-next libraries. It provides tools for:
+ry-lib is the foundational library for creating and managing other ry libraries. It provides tools for:
 - Creating new libraries with proper structure
 - Validating library configurations
 - Managing library versions
@@ -15,10 +15,10 @@ ry-lib is the foundational library for creating and managing other ry-next libra
 
 ```bash
 # Install to user directory
-ry-next --install ry-lib
+ry --install ry-lib
 
 # Or use directly from docs_next/libraries
-ry-next ry-lib --ry-help
+ry ry-lib --ry-help
 ```
 
 ## Commands
@@ -27,88 +27,88 @@ ry-next ry-lib --ry-help
 
 ```bash
 # Create a utility library
-ry-next ry-lib init my-lib
+ry ry-lib init my-lib
 
 # Create an augmentation library
-ry-next ry-lib init git-tools --type augmentation --target /usr/bin/git
+ry ry-lib init git-tools --type augmentation --target /usr/bin/git
 
 # Create a hybrid library
-ry-next ry-lib init dev-tools --type hybrid
+ry ry-lib init dev-tools --type hybrid
 ```
 
 ### `validate` - Validate library structure
 
 ```bash
 # Validate a specific library
-ry-next ry-lib validate --library my-lib
+ry ry-lib validate --library my-lib
 
 # Validate all libraries
-ry-next ry-lib validate --all
+ry ry-lib validate --all
 
 # Verbose validation
-ry-next ry-lib validate --all --verbose
+ry ry-lib validate --all --verbose
 ```
 
 ### `bump` - Update library version
 
 ```bash
 # Patch version bump (0.1.0 -> 0.1.1)
-ry-next ry-lib bump my-lib
+ry ry-lib bump my-lib
 
 # Minor version bump (0.1.0 -> 0.2.0)
-ry-next ry-lib bump my-lib --type minor
+ry ry-lib bump my-lib --type minor
 
 # Major version bump (0.1.0 -> 1.0.0)
-ry-next ry-lib bump my-lib --type major --message "Breaking changes"
+ry ry-lib bump my-lib --type major --message "Breaking changes"
 ```
 
 ### `list` - List libraries
 
 ```bash
 # List all available libraries
-ry-next ry-lib list
+ry ry-lib list
 
 # List installed libraries
-ry-next ry-lib list --installed
+ry ry-lib list --installed
 
 # Output as JSON
-ry-next ry-lib list --json
+ry ry-lib list --json
 ```
 
 ### `check-versions` - Version checking for git hooks
 
 ```bash
 # Check if changed libraries have version bumps
-ry-next ry-lib check-versions
+ry ry-lib check-versions
 
 # Show git hook setup
-ry-next ry-lib check-versions --hook
+ry ry-lib check-versions --hook
 ```
 
 ### `registry` - Generate library registry
 
 ```bash
 # Generate registry.json
-ry-next ry-lib registry
+ry ry-lib registry
 
 # Pretty print
-ry-next ry-lib registry --pretty
+ry ry-lib registry --pretty
 
 # Custom output path
-ry-next ry-lib registry --output /tmp/registry.json
+ry ry-lib registry --output /tmp/registry.json
 ```
 
 ### `publish` - Commit and push library changes
 
 ```bash
 # Update registry and commit
-ry-next ry-lib publish
+ry ry-lib publish
 
 # Custom commit message
-ry-next ry-lib publish --message "feat: add new libraries"
+ry ry-lib publish --message "feat: add new libraries"
 
 # Also push to remote
-ry-next ry-lib publish --push
+ry ry-lib publish --push
 ```
 
 ## Library Structure
@@ -139,7 +139,7 @@ ry-lib is designed to be:
 - **Self-contained**: No external dependencies
 - **Bootstrapping**: Can create itself and other libraries
 - **Clean**: Logic separated into lib/ scripts
-- **v2.0 native**: Built for ry-next, not ry-tool
+- **v2.0 native**: Built for ry, not ry-tool
 
 ## Examples
 
@@ -147,19 +147,19 @@ ry-lib is designed to be:
 
 ```bash
 # Create the library
-ry-next ry-lib init git-extras --type augmentation --target /usr/bin/git
+ry ry-lib init git-extras --type augmentation --target /usr/bin/git
 
 # Edit the generated YAML
 vim docs_next/libraries/git-extras/git-extras.yaml
 
 # Validate it
-ry-next ry-lib validate --library git-extras
+ry ry-lib validate --library git-extras
 
 # Test it
-ry-next git-extras --ry-help
+ry git-extras --ry-help
 
 # Install for regular use
-ry-next --install git-extras
+ry --install git-extras
 ```
 
 ### Setting up git hooks
@@ -167,7 +167,7 @@ ry-next --install git-extras
 ```bash
 # Add to .git/hooks/pre-commit
 #!/bin/bash
-ry-next ry-lib check-versions || exit 1
+ry ry-lib check-versions || exit 1
 ```
 
 This ensures all library changes include version bumps.

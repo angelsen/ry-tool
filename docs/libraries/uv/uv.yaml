@@ -5,11 +5,11 @@ target: /usr/bin/uv
 description: Python package management with automated version workflows
 
 workflows:
-  - "ry-next uv version --bump patch --dry-run  # Preview version bump"
-  - "BUMP_TOKEN=xxx ry-next uv version --bump patch  # Execute bump"
-  - "ry-next uv build                        # Build package"
-  - "ry-next uv publish --dry-run            # Verify publish requirements"
-  - "PUBLISH_TOKEN=xxx ry-next uv publish    # Publish to PyPI"
+  - "ry uv version --bump patch --dry-run  # Preview version bump"
+  - "BUMP_TOKEN=xxx ry uv version --bump patch  # Execute bump"
+  - "ry uv build                        # Build package"
+  - "ry uv publish --dry-run            # Verify publish requirements"
+  - "PUBLISH_TOKEN=xxx ry uv publish    # Publish to PyPI"
 
 commands:
   # Version management with token-based workflow
@@ -107,7 +107,7 @@ commands:
                     bump_type = flags.get('bump', 'patch')
                     package = flags.get('package')
                     
-                    cmd_parts = ['ry-next', 'uv', 'version', '--bump', bump_type, '--dry-run']
+                    cmd_parts = ['ry', 'uv', 'version', '--bump', bump_type, '--dry-run']
                     if package:
                         cmd_parts.extend(['--package', package])
                     print(f"   Run: {' '.join(cmd_parts)}", file=sys.stderr)
@@ -119,7 +119,7 @@ commands:
                 tm = TokenManager("uv")
                 if not tm.verify_token(token):
                     print("ERROR: Invalid or expired token", file=sys.stderr)
-                    print("   Run: ry-next uv version --bump patch --dry-run", file=sys.stderr)
+                    print("   Run: ry uv version --bump patch --dry-run", file=sys.stderr)
                     sys.exit(1)
                 
                 print("SUCCESS: Bump token verified", file=sys.stderr)
@@ -132,7 +132,7 @@ commands:
                     if not has_unreleased_content():
                         print("ERROR: CHANGELOG.md has no unreleased changes", file=sys.stderr)
                         print("   Add your changes under [Unreleased] section", file=sys.stderr)
-                        print("   Or run: ry-next changelog validate", file=sys.stderr)
+                        print("   Or run: ry changelog validate", file=sys.stderr)
                         sys.exit(1)
                     
                     print("SUCCESS: CHANGELOG has unreleased content", file=sys.stderr)
@@ -263,7 +263,7 @@ commands:
       after:
         - shell: |
             echo "SUCCESS: Build complete" >&2
-            echo "INFO: Next: ry-next uv publish --dry-run" >&2
+            echo "INFO: Next: ry uv publish --dry-run" >&2
 
   # Publish with token-based safety
   publish:
@@ -314,7 +314,7 @@ commands:
                 print(f"   Expires in {expires} seconds", file=sys.stderr)
                 
                 # Build command without --dry-run
-                cmd_parts = ['PUBLISH_TOKEN=' + token, 'ry-next', 'uv', 'publish']
+                cmd_parts = ['PUBLISH_TOKEN=' + token, 'ry', 'uv', 'publish']
                 # Add package flag if present
                 if flags.get('package'):
                     cmd_parts.extend(['--package', flags.get('package')])
@@ -334,7 +334,7 @@ commands:
                 
                 if not token:
                     print("ERROR: Verify publish requirements first", file=sys.stderr)
-                    print("   Run: ry-next uv publish --dry-run", file=sys.stderr)
+                    print("   Run: ry uv publish --dry-run", file=sys.stderr)
                     print("   Then use the PUBLISH_TOKEN provided", file=sys.stderr)
                     sys.exit(1)
                 
@@ -343,7 +343,7 @@ commands:
                 tm = TokenManager("uv")
                 if not tm.verify_token(token):
                     print("ERROR: Invalid or expired token", file=sys.stderr)
-                    print("   Run: ry-next uv publish --dry-run", file=sys.stderr)
+                    print("   Run: ry uv publish --dry-run", file=sys.stderr)
                     sys.exit(1)
                 
                 print("SUCCESS: Publish token verified", file=sys.stderr)

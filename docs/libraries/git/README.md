@@ -1,17 +1,17 @@
 # git
 
-Git library for ry-next
+Git library for ry
 
 ## Installation
 
 ```bash
-ry-next --install git
+ry --install git
 ```
 
 ## Usage
 
 ```bash
-ry-next git --ry-help
+ry git --ry-help
 ```
 
 ## Commands
@@ -22,5 +22,5 @@ See `git.yaml` for available commands.
 
 This library was created with ry-lib:
 ```bash
-ry-next ry-lib init git --type augmentation
+ry ry-lib init git --type augmentation
 ```

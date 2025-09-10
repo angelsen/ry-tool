@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a new ry-next library with proper structure."""
+"""Create a new ry library with proper structure."""
 
 import os
 import sys
@@ -69,7 +69,7 @@ def create_library(name: str, lib_type: str = 'utility', target: str = '') -> bo
                 template_content = f.read()
             
             # Replace template variables
-            description = f'{name.replace("-", " ").title()} library for ry-next'
+            description = f'{name.replace("-", " ").title()} library for ry'
             template_content = template_content.replace('{{name}}', name)
             template_content = template_content.replace('{{description}}', description)
             if lib_type == 'augmentation' and target:
@@ -83,7 +83,7 @@ def create_library(name: str, lib_type: str = 'utility', target: str = '') -> bo
                 'version': '2.0',
                 'name': name,
                 'type': lib_type,
-                'description': f'{name.replace("-", " ").title()} library for ry-next',
+                'description': f'{name.replace("-", " ").title()} library for ry',
                 'commands': {
                     'hello': {
                         'description': 'Example command',
@@ -93,7 +93,7 @@ def create_library(name: str, lib_type: str = 'utility', target: str = '') -> bo
                     }
                 },
                 'workflows': [
-                    f'ry-next {name} hello     # Run example command'
+                    f'ry {name} hello     # Run example command'
                 ]
             }
             if lib_type == 'augmentation' and target:
@@ -124,13 +124,13 @@ def create_library(name: str, lib_type: str = 'utility', target: str = '') -> bo
 ## Installation
 
 ```bash
-ry-next --install {name}
+ry --install {name}
 ```
 
 ## Usage
 
 ```bash
-ry-next {name} --ry-help
+ry {name} --ry-help
 ```
 
 ## Commands
@@ -141,7 +141,7 @@ See `{name}.yaml` for available commands.
 
 This library was created with ry-lib:
 ```bash
-ry-next ry-lib init {name} --type {lib_type}
+ry ry-lib init {name} --type {lib_type}
 ```
 """
         
@@ -166,8 +166,8 @@ ry-next ry-lib init {name} --type {lib_type}
         print(f"   Location: {lib_dir}", file=sys.stderr)
         print(f"INFO: Next steps:", file=sys.stderr)
         print(f"   1. Edit {lib_dir}/{name}.yaml to add commands", file=sys.stderr)
-        print(f"   2. Test with: ry-next {name} --ry-help", file=sys.stderr)
-        print(f"   3. Install with: ry-next --install {name}", file=sys.stderr)
+        print(f"   2. Test with: ry {name} --ry-help", file=sys.stderr)
+        print(f"   3. Install with: ry --install {name}", file=sys.stderr)
         
         return True
         

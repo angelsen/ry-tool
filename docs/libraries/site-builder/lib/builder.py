@@ -219,6 +219,6 @@ class SiteBuilder(LibraryBase):
         if 'repository' in project.get('source', {}):
             html.append(f'<a href="{project["source"]["repository"]}">View on GitHub</a> | ')
         
-        html.append('Generated with ry-next site-builder')
+        html.append('Generated with ry site-builder')
         
         return ''.join(html)

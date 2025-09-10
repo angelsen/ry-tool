@@ -5,11 +5,11 @@ target: /usr/bin/git
 description: Git workflow with review tokens and commit validation
 
 workflows:
-  - "ry-next git add .                        # Stage files"
-  - "ry-next git diff --staged                # Review and get token"
-  - "REVIEW_TOKEN=xxx ry-next git commit -m 'message'  # Commit with token"
-  - "ry-next git push --dry-run               # Preview push"
-  - "ry-next git tag v1.0.0                   # Tag with changelog update"
+  - "ry git add .                        # Stage files"
+  - "ry git diff --staged                # Review and get token"
+  - "REVIEW_TOKEN=xxx ry git commit -m 'message'  # Commit with token"
+  - "ry git push --dry-run               # Preview push"
+  - "ry git tag v1.0.0                   # Tag with changelog update"
 
 commands:
   # Show staged changes and generate review token

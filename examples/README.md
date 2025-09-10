@@ -1,6 +1,6 @@
-# ry-next Examples
+# ry Examples
 
-These examples demonstrate the core features of ry-next with working, tested code.
+These examples demonstrate the core features of ry with working, tested code.
 
 ## Examples
 
@@ -13,9 +13,9 @@ A basic utility library showing:
 
 **Usage:**
 ```bash
-ry-next hello greet Fredrik --excited
-ry-next hello greet --times 3
-ry-next hello goodbye
+ry hello greet Fredrik --excited
+ry hello greet --times 3
+ry hello goodbye
 ```
 
 ### 2. git-simple.yaml - Command Augmentation
@@ -28,9 +28,9 @@ Simple git enhancements demonstrating:
 
 **Usage:**
 ```bash
-ry-next git-simple status
-ry-next git-simple commit -m "feat: new feature"
-ry-next git-simple push origin main  # Shows warning
+ry git-simple status
+ry git-simple commit -m "feat: new feature"
+ry git-simple push origin main  # Shows warning
 ```
 
 ### 3. dev-workflow.yaml - Development Automation
@@ -43,10 +43,10 @@ Development workflow commands showing:
 
 **Usage:**
 ```bash
-ry-next dev setup
-ry-next dev test --coverage
-ry-next dev format src/
-ry-next dev clean
+ry dev setup
+ry dev test --coverage
+ry dev format src/
+ry dev clean
 ```
 
 ## Key Patterns
@@ -89,11 +89,11 @@ All examples can be tested directly:
 
 ```bash
 # Test any example
-ry-next examples/hello.yaml greet
+ry examples/hello.yaml greet
 
 # Show execution plan
-ry-next --ry-run examples/git-simple.yaml commit -m test
+ry --ry-run examples/git-simple.yaml commit -m test
 
 # Get help
-ry-next examples/dev-workflow.yaml --ry-help
+ry examples/dev-workflow.yaml --ry-help
 ```

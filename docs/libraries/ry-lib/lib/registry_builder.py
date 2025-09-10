@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build registry.json for all ry-next libraries."""
+"""Build registry.json for all ry libraries."""
 
 import sys
 import json
@@ -104,7 +104,7 @@ def list_libraries(as_json: bool = False, installed_only: bool = False) -> bool:
     """
     if installed_only:
         # Check user installation directory
-        user_dir = Path.home() / '.local' / 'share' / 'ry-next' / 'libraries'
+        user_dir = Path.home() / '.local' / 'share' / 'ry' / 'libraries'
         if user_dir.exists():
             installed = {}
             for lib_dir in user_dir.iterdir():
