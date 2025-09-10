@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Full workspace support for uv library** - Complete refactoring using `tomllib`
+  - Created `workspace_utils.py` module for workspace detection and management
+  - Reads workspace configuration directly from `pyproject.toml` (Python 3.12+)
+  - Smart package detection handles nested packages like `packages/some-package`
+  - Package validation shows available packages when invalid name provided
+  - Structured dist layout: each package builds to `dist/{package_name}/`
+  - Workspace status display shows all packages and build status
+  - Caches workspace info to avoid re-reading `pyproject.toml`
+  - Full support for package-specific `CHANGELOG.md` files
+
 ### Changed
 - **Complete migration from ry-next to ry naming**
   - Renamed all internal references from ry-next back to ry
@@ -17,6 +28,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added comprehensive ARCHITECTURE.md documentation
   - Added release-workflow command for automated releases
   - This completes the transition from experimental ry-next to production ry
+- **uv library improvements**
+  - Build command uses `--out-dir dist/{package_name}` for clean separation
+  - Publish command requires explicit file paths (no fake `--package` flag)
+  - Version command validates packages before operations
+  - Reduced subprocess calls by reading from `pyproject.toml` directly
+  - Better error messages showing available packages and commands
+  - Support for `--all-packages` flag in build command
+
+### Fixed
+- **uv library workspace issues**
+  - Fixed incorrect `packages/{package}/dist` path assumption
+  - CHANGELOG discovery now correctly finds `packages/some-package/CHANGELOG.md`
+  - Publish requirements check uses correct `dist/{package_name}` structure
+  - Removed nonsensical fallback for non-existent packages in CHANGELOG check
+
+### Refactored
+- **Eliminated ~115 lines of redundant code in uv library**
+  - Created reusable utility functions in `workspace_utils.py`:
+    - `validate_and_normalize_package_flag()` - Consolidated package validation
+    - `ensure_git_clean()` - Unified git status checking with warning mode
+    - `get_pypi_token()` - Centralized PyPI token retrieval from env or pass
+    - `show_publish_help()` - Consolidated publish error messages
+  - Removed unused `bump_version()` function from `version_workflow.py`
+  - Removed duplicate `check_git_clean()` function
+  - Replaced all redundant code blocks in `uv.yaml` with utility function calls
+  - Improved maintainability with single source of truth for common operations
 
 ## [1.2.1] - 2025-09-11
 

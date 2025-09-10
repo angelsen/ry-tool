@@ -6,11 +6,19 @@ import subprocess
 import json
 from pathlib import Path
 from typing import Optional, Tuple
+from workspace_utils import (
+    get_package_info,
+    get_package_location,
+    get_workspace_info,
+    validate_package_arg,
+    check_git_clean
+)
 
 
 def get_current_version(package: Optional[str] = None) -> Tuple[str, str]:
     """
-    Get current version info from uv.
+    Get current version info.
+    First tries to read from pyproject.toml, falls back to uv if needed.
     
     Args:
         package: Optional package name for workspace
@@ -18,6 +26,19 @@ def get_current_version(package: Optional[str] = None) -> Tuple[str, str]:
     Returns:
         (version, package_name)
     """
+    # Try to get from tomllib first
+    info = get_package_info(package)
+    if info:
+        # Extract package name from the info
+        workspace = get_workspace_info()
+        if package:
+            package_name = package
+        else:
+            package_name = workspace['root_package']
+        
+        return info['version'], package_name
+    
+    # Fallback to uv command if tomllib fails
     cmd = ['/usr/bin/uv', 'version', '--output-format', 'json']
     if package:
         cmd.extend(['--package', package])
@@ -30,19 +51,10 @@ def get_current_version(package: Optional[str] = None) -> Tuple[str, str]:
     return data['version'], data['package_name']
 
 
-def check_git_clean() -> bool:
-    """Check if git working directory is clean."""
-    result = subprocess.run(
-        ['/usr/bin/git', 'status', '--porcelain'],
-        capture_output=True,
-        text=True
-    )
-    return len(result.stdout.strip()) == 0
-
-
-def check_changelog_exists(package: Optional[str] = None) -> Path:
+def check_changelog_exists(package: Optional[str] = None) -> Optional[Path]:
     """
     Check if CHANGELOG.md exists.
+    Uses workspace info to find correct location for nested packages.
     
     Args:
         package: Optional package name for workspace
@@ -51,46 +63,21 @@ def check_changelog_exists(package: Optional[str] = None) -> Path:
         Path to changelog or None
     """
     if package:
-        # Check package-specific changelog
-        changelog = Path(f'packages/{package}/CHANGELOG.md')
-        if changelog.exists():
-            return changelog
+        # Get actual package location from workspace config
+        package_dir = get_package_location(package)
+        if package_dir:
+            changelog = package_dir / 'CHANGELOG.md'
+            if changelog.exists():
+                return changelog
+        # If package specified but not found in workspace, that's an error condition
+        # Don't look for random directories, let caller handle the None return
     
-    # Check root changelog
+    # Check root changelog (for root package or as fallback)
     changelog = Path('CHANGELOG.md')
     if changelog.exists():
         return changelog
     
     return None
-
-
-def bump_version(bump_type: str, package: Optional[str] = None) -> Tuple[str, str, str]:
-    """
-    Bump version using uv.
-    
-    Args:
-        bump_type: Type of bump (major, minor, patch)
-        package: Optional package name
-    
-    Returns:
-        (old_version, new_version, package_name)
-    """
-    # Get current version
-    old_version, package_name = get_current_version(package)
-    
-    # Bump version
-    cmd = ['/usr/bin/uv', 'version', '--bump', bump_type]
-    if package:
-        cmd.extend(['--package', package])
-    
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise RuntimeError(f"Failed to bump version: {result.stderr}")
-    
-    # Get new version
-    new_version, _ = get_current_version(package)
-    
-    return old_version, new_version, package_name
 
 
 def release_changelog(version: str, changelog_path: Path) -> bool:
@@ -139,6 +126,7 @@ def commit_version_bump(package_name: str, old_version: str, new_version: str):
 def check_publish_requirements(package: Optional[str] = None) -> Tuple[bool, str]:
     """
     Check if ready to publish.
+    Uses workspace info to validate package and check requirements.
     
     Args:
         package: Optional package name
@@ -146,23 +134,30 @@ def check_publish_requirements(package: Optional[str] = None) -> Tuple[bool, str
     Returns:
         (is_ready, error_message)
     """
-    # Check for dist files
-    dist_dir = Path(f'packages/{package}/dist' if package else 'dist')
-    if not dist_dir.exists() or not list(dist_dir.glob('*')):
-        return False, f"No dist files found. Run: uv build"
+    # Validate package exists and get its info
+    if package:
+        valid_package = validate_package_arg(package)
+        if not valid_package:
+            return False, f"Unknown package: {package}"
+        package_name = valid_package
+    else:
+        # Get root package
+        workspace = get_workspace_info()
+        if not workspace or not workspace['root_package']:
+            return False, "Could not determine root package"
+        package_name = workspace['root_package']
     
-    # Get package info from uv
+    # Get version info
     try:
-        cmd = ['/usr/bin/uv', 'version', '--output-format', 'json']
-        if package:
-            cmd.extend(['--package', package])
-        
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        data = json.loads(result.stdout)
-        package_name = data['package_name']
-        version = data['version']
-    except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError) as e:
-        return False, f"Could not get package info from uv: {e}"
+        version, _ = get_current_version(package_name if package else None)
+    except Exception as e:
+        return False, f"Could not get version info: {e}"
+    
+    # Check for dist files in package-specific directory
+    dist_dir = Path(f'dist/{package_name}')
+    if not dist_dir.exists() or not list(dist_dir.glob('*')):
+        build_cmd = f"uv build --package {package_name}" if package else "uv build"
+        return False, f"No dist files found in {dist_dir}. Run: ry {build_cmd}"
     
     # Check if version is tagged
     tag = f"{package_name}-v{version}"

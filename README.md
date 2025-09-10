@@ -14,7 +14,7 @@ A command augmentation framework that wraps and enhances existing CLI tools with
 ## Installation
 
 ```bash
-pip install -e .
+uv tool isntall ry-tool
 ```
 
 This installs the `ry` command globally.

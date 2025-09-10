@@ -7,9 +7,11 @@ description: Python package management with automated version workflows
 workflows:
   - "ry uv version --bump patch --dry-run  # Preview version bump"
   - "BUMP_TOKEN=xxx ry uv version --bump patch  # Execute bump"
-  - "ry uv build                        # Build package"
-  - "ry uv publish --dry-run            # Verify publish requirements"
-  - "PUBLISH_TOKEN=xxx ry uv publish    # Publish to PyPI"
+  - "ry uv build                             # Build root package to dist/{name}/"
+  - "ry uv build --package backend           # Build workspace member to dist/backend/"
+  - "ry uv build --all-packages              # Build all workspace packages"
+  - "ry uv publish dist/backend/* --dry-run  # Verify publish requirements"
+  - "PUBLISH_TOKEN=xxx ry uv publish dist/backend/*  # Publish to PyPI"
 
 commands:
   # Version management with token-based workflow
@@ -32,28 +34,33 @@ commands:
         augment:
           before:
             - python: |
-                from version_workflow import check_git_clean, check_changelog_exists, get_current_version
+                from version_workflow import check_changelog_exists, get_current_version
+                from workspace_utils import validate_and_normalize_package_flag, ensure_git_clean
+                
+                # Validate package if specified
+                package = validate_and_normalize_package_flag(flags)
                 
                 # Check git status
-                if not check_git_clean():
-                    print("ERROR: Working directory not clean", file=sys.stderr)
-                    print("   Fix: git add -A && git commit", file=sys.stderr)
-                    print("   Or stash: git stash", file=sys.stderr)
-                    sys.exit(1)
+                ensure_git_clean()
                 
                 # Check CHANGELOG has content to release
                 from pathlib import Path
                 from changelog_core import has_unreleased_content
                 
-                if Path('CHANGELOG.md').exists():
-                    if not has_unreleased_content():
-                        print("WARNING: CHANGELOG.md has no unreleased changes", file=sys.stderr)
-                        print("   Add changes under [Unreleased] before bumping", file=sys.stderr)
+                # Use check_changelog_exists to find the right CHANGELOG
+                package = flags.get('package')
+                changelog = check_changelog_exists(package)
+                
+                if changelog:
+                    # Check if it has unreleased content (only if in root, package-specific might not use same format)
+                    if changelog == Path('CHANGELOG.md'):
+                        if not has_unreleased_content():
+                            print(f"WARNING: {changelog} has no unreleased changes", file=sys.stderr)
+                            print("   Add changes under [Unreleased] before bumping", file=sys.stderr)
                 else:
                     print("WARNING: No CHANGELOG.md found", file=sys.stderr)
                 
                 # Get package info for display
-                package = flags.get('package')
                 version, package_name = get_current_version(package)
                 bump_type = flags.get('bump', 'patch')
                 
@@ -98,8 +105,13 @@ commands:
           before:
             - python: |
                 import sys
-                # Check for bump token
                 import os
+                from workspace_utils import validate_and_normalize_package_flag
+                
+                # Validate package if specified
+                package = validate_and_normalize_package_flag(flags)
+                
+                # Check for bump token
                 token = os.environ.get('BUMP_TOKEN', '')
                 
                 if not token:
@@ -127,27 +139,31 @@ commands:
                 # Check CHANGELOG has unreleased content
                 from pathlib import Path
                 from changelog_core import has_unreleased_content
+                from version_workflow import check_changelog_exists
                 
-                if Path('CHANGELOG.md').exists():
-                    if not has_unreleased_content():
-                        print("ERROR: CHANGELOG.md has no unreleased changes", file=sys.stderr)
-                        print("   Add your changes under [Unreleased] section", file=sys.stderr)
-                        print("   Or run: ry changelog validate", file=sys.stderr)
-                        sys.exit(1)
-                    
-                    print("SUCCESS: CHANGELOG has unreleased content", file=sys.stderr)
+                # Use check_changelog_exists to find the right CHANGELOG
+                package = flags.get('package')
+                changelog = check_changelog_exists(package)
+                
+                if changelog:
+                    # Only check unreleased content for root CHANGELOG (package-specific might use different format)
+                    if changelog == Path('CHANGELOG.md'):
+                        if not has_unreleased_content():
+                            print(f"ERROR: {changelog} has no unreleased changes", file=sys.stderr)
+                            print("   Add your changes under [Unreleased] section", file=sys.stderr)
+                            print("   Or run: ry changelog validate", file=sys.stderr)
+                            sys.exit(1)
+                        print("SUCCESS: CHANGELOG has unreleased content", file=sys.stderr)
+                    else:
+                        print(f"INFO: Using package changelog: {changelog}", file=sys.stderr)
                 
                 # Check git clean
-                from version_workflow import check_git_clean
+                from workspace_utils import ensure_git_clean
                 
-                if not check_git_clean():
-                    print("ERROR: Working directory not clean", file=sys.stderr)
-                    print("   Fix: git add -A && git commit", file=sys.stderr)
-                    sys.exit(1)
+                ensure_git_clean()
                 
                 # Store old version for later
                 from version_workflow import get_current_version
-                package = flags.get('package')
                 old_version, package_name = get_current_version(package)
                 os.environ['RY_OLD_VERSION'] = old_version
                 os.environ['RY_PACKAGE_NAME'] = package_name
@@ -191,15 +207,10 @@ commands:
           before:
             - python: |
                 import sys
-                import subprocess
+                from workspace_utils import ensure_git_clean
                 
                 # Check git clean
-                result = subprocess.run(['/usr/bin/git', 'status', '--porcelain'], 
-                                      capture_output=True, text=True)
-                if result.stdout.strip():
-                    print("ERROR: Working directory not clean", file=sys.stderr)
-                    print("   Fix: git add -A && git commit", file=sys.stderr)
-                    sys.exit(1)
+                ensure_git_clean()
           
           relay: native
           
@@ -239,31 +250,83 @@ commands:
       before:
         - python: |
             import sys
-            import subprocess
             from pathlib import Path
+            from workspace_utils import (
+                validate_and_normalize_package_flag,
+                get_workspace_info,
+                get_package_info,
+                show_workspace_status,
+                ensure_git_clean
+            )
             
             # Check git status (warning only)
-            result = subprocess.run(['/usr/bin/git', 'status', '--porcelain'],
-                                  capture_output=True, text=True)
-            if result.stdout.strip():
-                print("WARNING: Building from dirty working tree", file=sys.stderr)
-                print("   Uncommitted changes may be included", file=sys.stderr)
+            ensure_git_clean(warning_only=True)
             
-            # Check if dist is empty
-            dist_dir = Path('dist')
-            if flags.get('package'):
-                # Use package name from flags
-                dist_dir = Path(f'packages/{flags.get("package")}/dist')
-            
-            if dist_dir.exists() and list(dist_dir.glob('*')):
-                print(f"ERROR: {dist_dir} is not empty", file=sys.stderr)
-                print(f"   Fix: rm -rf {dist_dir}/*", file=sys.stderr)
-                sys.exit(1)
+            # Handle --all-packages flag
+            if flags.get('all_packages'):
+                # This is handled by native uv, just pass through
+                # But we should show what will be built
+                show_workspace_status()
+                print("", file=sys.stderr)
+                print("INFO: Building all workspace packages", file=sys.stderr)
+                # Don't set output directory for --all-packages
+                # Let uv handle it with its default behavior
+            else:
+                # Validate package if specified
+                package_name = validate_and_normalize_package_flag(flags)
+                
+                if not package_name:
+                    # Get root package name
+                    workspace = get_workspace_info()
+                    if workspace and workspace['root_package']:
+                        package_name = workspace['root_package']
+                    else:
+                        print("ERROR: Could not determine package to build", file=sys.stderr)
+                        print("   Specify: ry uv build --package <name>", file=sys.stderr)
+                        print("   Or: ry uv build --all-packages", file=sys.stderr)
+                        sys.exit(1)
+                
+                # Set output directory to dist/{package_name}
+                dist_dir = Path(f'dist/{package_name}')
+                
+                # Add --out-dir to remaining_args (will be passed to native uv)
+                remaining_args.extend(['--out-dir', str(dist_dir)])
+                
+                # Check if dist is empty
+                if dist_dir.exists() and list(dist_dir.glob('*')):
+                    print(f"ERROR: {dist_dir} is not empty", file=sys.stderr)
+                    print(f"   Fix: rm -rf {dist_dir}/*", file=sys.stderr)
+                    sys.exit(1)
       
       after:
-        - shell: |
-            echo "SUCCESS: Build complete" >&2
-            echo "INFO: Next: ry uv publish --dry-run" >&2
+        - python: |
+            from pathlib import Path
+            from workspace_utils import get_all_packages
+            
+            # Show what was built
+            print("SUCCESS: Build complete", file=sys.stderr)
+            
+            # Check what packages have dist directories now
+            packages = get_all_packages()
+            dist_dir = Path('dist')
+            
+            if dist_dir.exists():
+                built = []
+                for subdir in dist_dir.iterdir():
+                    if subdir.is_dir() and subdir.name in packages:
+                        artifacts = list(subdir.glob('*.whl')) + list(subdir.glob('*.tar.gz'))
+                        if artifacts:
+                            built.append(subdir.name)
+                
+                if built:
+                    print("", file=sys.stderr)
+                    print("INFO: Built packages:", file=sys.stderr)
+                    for name in built:
+                        print(f"  - {name} in dist/{name}/", file=sys.stderr)
+                    print("", file=sys.stderr)
+                    print("INFO: Next steps:", file=sys.stderr)
+                    for name in built:
+                        print(f"  - ry uv publish dist/{name}/* --dry-run", file=sys.stderr)
 
   # Publish with token-based safety
   publish:
@@ -275,30 +338,58 @@ commands:
         augment:
           before:
             - python: |
-                from version_workflow import check_publish_requirements
+                from pathlib import Path
+                import glob
+                import subprocess
+                import json
+                from workspace_utils import (
+                    get_package_name_from_path,
+                    list_built_packages,
+                    get_all_packages,
+                    get_package_info,
+                    show_publish_help
+                )
                 
-                # Get package from flags if specified
-                package = flags.get('package')
-                
-                ready, error = check_publish_requirements(package)
-                
-                if not ready:
-                    print(f"ERROR: Not ready to publish: {error}", file=sys.stderr)
+                # Check if files were provided
+                if not positionals and not remaining_args:
+                    print("ERROR: No files specified for publish", file=sys.stderr)
+                    built = list_built_packages()
+                    show_publish_help(built)
                     sys.exit(1)
                 
-                print("SUCCESS: Ready to publish", file=sys.stderr)
+                # Extract path from arguments to determine package
+                path_arg = positionals[0] if positionals else remaining_args[0]
+                
+                # Try to determine package name from path for validation
+                package_name = get_package_name_from_path(path_arg)
+                
+                # Check publish requirements for the package
+                if package_name:
+                    from version_workflow import check_publish_requirements
+                    
+                    # Check if it's a workspace member or root package
+                    info = get_package_info(package_name)
+                    if info:
+                        if info['is_workspace_member']:
+                            ready, error = check_publish_requirements(package_name)
+                        else:
+                            # Root package
+                            ready, error = check_publish_requirements(None)
+                        
+                        if not ready:
+                            print(f"ERROR: Not ready to publish: {error}", file=sys.stderr)
+                            sys.exit(1)
+                        
+                        print(f"SUCCESS: Ready to publish {package_name} v{info['version']}", file=sys.stderr)
+                    else:
+                        print(f"WARNING: Could not determine package from path: {path_arg}", file=sys.stderr)
+                        print("   Skipping validation checks", file=sys.stderr)
                 
                 # Check for PyPI token - try pass if not in env
+                from workspace_utils import get_pypi_token
+                
                 if not env.get('UV_PUBLISH_TOKEN'):
-                    import subprocess
-                    result = subprocess.run(['pass', 'pypi/uv-publish'], 
-                                          capture_output=True, text=True)
-                    if result.returncode == 0:
-                        print("AUTH: Will use PyPI token from pass", file=sys.stderr)
-                    else:
-                        print("WARNING: No UV_PUBLISH_TOKEN set and pass pypi/uv-publish not found", file=sys.stderr)
-                        print("   Set with: export UV_PUBLISH_TOKEN=pypi-...", file=sys.stderr)
-                        print("   Or store in pass: pass insert pypi/uv-publish", file=sys.stderr)
+                    get_pypi_token()  # Just check and warn if not available
           
           relay: native  # Let uv show what would be published
           
@@ -313,14 +404,11 @@ commands:
                 print(f"REVIEW: PUBLISH_TOKEN={token}", file=sys.stderr)
                 print(f"   Expires in {expires} seconds", file=sys.stderr)
                 
-                # Build command without --dry-run
-                cmd_parts = ['PUBLISH_TOKEN=' + token, 'ry', 'uv', 'publish']
-                # Add package flag if present
-                if flags.get('package'):
-                    cmd_parts.extend(['--package', flags.get('package')])
-                # Note: other flags will be passed through relay
+                # Build command without --dry-run (keep file args)
+                file_args = ' '.join(positionals) if positionals else ' '.join(remaining_args)
+                cmd = f"PUBLISH_TOKEN={token} ry uv publish {file_args}"
                 
-                print(f"   Use: {' '.join(cmd_parts)}", file=sys.stderr)
+                print(f"   Use: {cmd}", file=sys.stderr)
       
       # Actual publish - require token
       - when: "not flags.get('dry-run')"
@@ -328,14 +416,29 @@ commands:
           before:
             - python: |
                 import sys
+                from pathlib import Path
+                from workspace_utils import (
+                    list_built_packages,
+                    get_all_packages,
+                    show_publish_help
+                )
+                
+                # Check if files were provided
+                if not positionals and not remaining_args:
+                    print("ERROR: No files specified for publish", file=sys.stderr)
+                    built = list_built_packages()
+                    show_publish_help(built)
+                    sys.exit(1)
+                
                 # Check for publish token
                 import os
                 token = os.environ.get('PUBLISH_TOKEN', '')
                 
                 if not token:
                     print("ERROR: Verify publish requirements first", file=sys.stderr)
-                    print("   Run: ry uv publish --dry-run", file=sys.stderr)
-                    print("   Then use the PUBLISH_TOKEN provided", file=sys.stderr)
+                    file_args = ' '.join(positionals) if positionals else ' '.join(remaining_args)
+                    print(f"   Run: ry uv publish {file_args} --dry-run", file=sys.stderr)
+                    print(f"   Then use the PUBLISH_TOKEN provided", file=sys.stderr)
                     sys.exit(1)
                 
                 from token_manager import TokenManager
@@ -343,24 +446,21 @@ commands:
                 tm = TokenManager("uv")
                 if not tm.verify_token(token):
                     print("ERROR: Invalid or expired token", file=sys.stderr)
-                    print("   Run: ry uv publish --dry-run", file=sys.stderr)
+                    file_args = ' '.join(positionals) if positionals else ' '.join(remaining_args)
+                    print(f"   Run: ry uv publish {file_args} --dry-run", file=sys.stderr)
                     sys.exit(1)
                 
                 print("SUCCESS: Publish token verified", file=sys.stderr)
                 
                 # Ensure PyPI token is set - try pass if not in env
+                from workspace_utils import get_pypi_token
+                
                 if not env.get('UV_PUBLISH_TOKEN'):
-                    import subprocess
-                    # Try to get from pass
-                    result = subprocess.run(['pass', 'pypi/uv-publish'], 
-                                          capture_output=True, text=True)
-                    if result.returncode == 0:
-                        os.environ['UV_PUBLISH_TOKEN'] = result.stdout.strip()
-                        print("AUTH: Retrieved PyPI token from pass", file=sys.stderr)
+                    token = get_pypi_token()
+                    if token:
+                        os.environ['UV_PUBLISH_TOKEN'] = token
                     else:
-                        print("ERROR: UV_PUBLISH_TOKEN not set and pass pypi/uv-publish not found", file=sys.stderr)
-                        print("   Set with: export UV_PUBLISH_TOKEN=pypi-...", file=sys.stderr)
-                        print("   Or store in pass: pass insert pypi/uv-publish", file=sys.stderr)
+                        print("ERROR: UV_PUBLISH_TOKEN not set", file=sys.stderr)
                         sys.exit(1)
           
           relay: native
