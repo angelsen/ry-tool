@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-09-10
+
 ### Added
 - **OUTPUT_STYLE_GUIDE.md** - Comprehensive formatting guide for consistent library outputs
   - Standardized emoji prefixes for different message types
