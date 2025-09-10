@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Clean Python path architecture** - Automatic PYTHONPATH setup in executor
+  - No more `sys.path.insert()` calls needed in libraries
+  - Cross-library imports work seamlessly (e.g., uv can import from git's token_manager)
+  - All library `lib/` directories automatically added to Python path
+- **Site builder library** - Static documentation generator from project.yaml
+  - Generates beautiful HTML documentation from project manifests
+  - Supports minimal and terminal themes
+  - Direct file:// URL for browser viewing (no server needed)
+- **Project manifest management** in ry-lib
+  - `ry-lib project init` - Create project.yaml with auto-detected metadata
+  - `ry-lib project sync` - Update manifest from pyproject.toml
+  - `ry-lib project validate` - Validate manifest structure
+  - `ry-lib project show` - Display current manifest
+- **Improved library structure patterns**
+  - Direct `execute:` for simple commands
+  - `handlers:` with `when:` conditions only for conditional logic
+  - Removed unnecessary `handlers: - default:` nesting
+
+### Changed
+- **All libraries now use clean imports**
+  - Direct imports: `from module import function`
+  - No path manipulation: imports just work
+  - Cleaner, more maintainable code
+- **Environment variable handling**
+  - Fixed `env.get()` vs `os.environ.get()` usage
+  - Shell environment variables (like REVIEW_TOKEN) now properly accessible
+  - Executor provides both `env` dict and preserves `os.environ`
+
+### Fixed
+- Site-builder command execution (was silently failing due to handler structure)
+- Token verification in git and uv libraries (env.get → os.environ.get)
+- Executor now displays captured stdout/stderr to user
+- Library Python modules can import ry_tool.utils without setup
+
 ## [1.0.1] - 2025-09-10
 
 ### Fixed
