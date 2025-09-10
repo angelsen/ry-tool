@@ -3,7 +3,7 @@ project:
   name: ry-tool
   type: library-collection
   description: Pure YAML command orchestrator - CI/CD for humans
-  version: 1.0.1
+  version: 1.1.0
   license: MIT
 maintainers:
 - name: Fredrik Angelsen
