@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.2.1] - 2025-09-11
+## [1.3.0] - 2025-09-11
 
 ### Added
 - **Full workspace support for uv library** - Complete refactoring using `tomllib`
