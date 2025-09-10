@@ -22,6 +22,7 @@ class LibraryConfig:
     commands: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
     path: Optional[Path] = None
+    workflows: List[str] = field(default_factory=list)  # Common workflow examples
 
 
 class LibraryLoader:
@@ -179,7 +180,8 @@ class LibraryLoader:
             description=data.get('description', ''),
             commands=commands,
             metadata=metadata,
-            path=path
+            path=path,
+            workflows=data.get('workflows', [])
         )
     
     def _validate_command(self, name: str, config: Dict[str, Any]):

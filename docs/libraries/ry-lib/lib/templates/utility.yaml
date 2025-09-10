@@ -1,0 +1,157 @@
+version: "2.0"
+name: "{{name}}"
+type: utility
+description: "{{description}}"
+
+workflows:
+  - "ry-next {{name}} init                   # Initialize"
+  - "ry-next {{name}} status                 # Check status"
+  - "ry-next {{name}} process <input>        # Process data"
+  - "ry-next {{name}} list                   # List items"
+
+commands:
+  init:
+    description: Initialize configuration
+    flags:
+      force:
+        type: bool
+        description: Overwrite existing configuration
+    
+    execute:
+      - python: |
+          from pathlib import Path
+          import yaml
+          import sys
+          
+          config_file = Path('{{name}}.config.yaml')
+          
+          if config_file.exists() and not flags.get('force'):
+              print(f"❌ {config_file} already exists", file=sys.stderr)
+              print("   Use --force to overwrite", file=sys.stderr)
+              sys.exit(1)
+          
+          config = {
+              'version': '1.0',
+              'name': '{{name}}',
+              'settings': {
+                  'debug': False,
+                  'verbose': False,
+                  'output_format': 'text'
+              }
+          }
+          
+          with open(config_file, 'w') as f:
+              yaml.dump(config, f, default_flow_style=False)
+          
+          print(f"✅ Created {config_file}", file=sys.stderr)
+          print(f"📝 Next: Edit {config_file} to customize settings", file=sys.stderr)
+
+  status:
+    description: Show current status
+    execute:
+      - python: |
+          from pathlib import Path
+          import sys
+          
+          config_file = Path('{{name}}.config.yaml')
+          
+          print(f"ℹ️  {{name}} status", file=sys.stderr)
+          
+          if config_file.exists():
+              print(f"   Config: {config_file} ✓", file=sys.stderr)
+          else:
+              print(f"   Config: Not initialized", file=sys.stderr)
+              print(f"📝 Run: ry-next {{name}} init", file=sys.stderr)
+
+  process:
+    description: Process input data
+    arguments:
+      input:
+        required: false
+        description: Input file or value
+    flags:
+      format:
+        type: enum
+        values: [json, yaml, text]
+        default: text
+        description: Output format
+      output:
+        type: string
+        description: Output file path
+      verbose:
+        type: bool
+        description: Show detailed progress
+    
+    execute:
+      - python: |
+          import sys
+          import json
+          import yaml
+          from pathlib import Path
+          
+          input_val = arguments.get('input', 'stdin')
+          format_type = flags.get('format', 'text')
+          
+          print(f"📦 Processing {input_val}...", file=sys.stderr)
+          
+          # Example processing - replace with actual logic
+          result = {
+              'input': input_val,
+              'processed_by': '{{name}}',
+              'format': format_type
+          }
+          
+          # Output based on format (to stdout for data)
+          if format_type == 'json':
+              print(json.dumps(result, indent=2))
+          elif format_type == 'yaml':
+              print(yaml.dump(result, default_flow_style=False))
+          else:
+              print(f"Processed: {input_val}")
+          
+          # Status messages to stderr
+          print("✅ Complete", file=sys.stderr)
+          
+          if flags.get('output'):
+              # In real implementation, would write to file
+              print(f"📝 Output saved to: {flags['output']}", file=sys.stderr)
+
+  list:
+    description: List available items
+    flags:
+      json:
+        type: bool
+        description: Output as JSON
+      filter:
+        type: string
+        description: Filter pattern
+    
+    execute:
+      - python: |
+          import json
+          import sys
+          
+          # Example items - replace with actual data source
+          items = [
+              {'name': 'item1', 'status': 'active'},
+              {'name': 'item2', 'status': 'inactive'},
+              {'name': 'item3', 'status': 'active'}
+          ]
+          
+          # Apply filter if provided
+          if flags.get('filter'):
+              pattern = flags['filter'].lower()
+              items = [i for i in items if pattern in i['name'].lower()]
+          
+          if flags.get('json'):
+              # Data output to stdout
+              print(json.dumps(items, indent=2))
+          else:
+              # Human-readable to stderr
+              if items:
+                  print("Available items:", file=sys.stderr)
+                  for item in items:
+                      status_icon = "✅" if item['status'] == 'active' else "⭕"
+                      print(f"  {status_icon} {item['name']}", file=sys.stderr)
+              else:
+                  print("ℹ️  No items found", file=sys.stderr)

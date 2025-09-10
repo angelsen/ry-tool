@@ -133,8 +133,8 @@ if __name__ == "__main__":
     
     for msg in test_messages:
         cleaned, warnings = process_commit_message(msg)
-        print(f"Original: {msg[:50]}...")
-        print(f"Cleaned: {cleaned[:50]}...")
+        print(f"Original: {msg[:50]}...", file=sys.stderr)
+        print(f"Cleaned: {cleaned[:50]}...", file=sys.stderr)
         if warnings:
-            print(f"Warnings: {warnings}")
-        print()
+            print(f"Warnings: {warnings}", file=sys.stderr)
+        print(file=sys.stderr)

@@ -3,6 +3,12 @@ name: changelog
 type: utility
 description: Simple changelog initialization and release management
 
+workflows:
+  - "ry-next changelog init                   # Create CHANGELOG.md"
+  - "ry-next changelog show --unreleased      # View pending changes"
+  - "ry-next changelog release 1.0.0          # Convert Unreleased to version"
+  - "ry-next changelog validate               # Check format"
+
 commands:
   init:
     description: Initialize a new CHANGELOG.md
@@ -65,7 +71,8 @@ commands:
           
           changelog = Path('CHANGELOG.md')
           if not changelog.exists():
-              print("❌ CHANGELOG.md not found")
+              print("❌ CHANGELOG.md not found", file=sys.stderr)
+              print("   Run: ry-next changelog init", file=sys.stderr)
               sys.exit(1)
           
           with open(changelog) as f:

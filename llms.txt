@@ -1,0 +1,160 @@
+# ry-tool LLM Context
+
+## Release Workflow
+
+```bash
+# 1. Stage changes
+ry-next git add -A
+
+# 2. Review and get token
+ry-next git diff --staged --stat
+
+# 3. Commit with token
+REVIEW_TOKEN=xxx ry-next git commit -m "feat: your message"
+
+# 4. Update CHANGELOG.md manually under [Unreleased]
+
+# 5. Bump version
+ry-next uv version --bump minor --dry-run
+BUMP_TOKEN=xxx ry-next uv version --bump minor
+
+# 6. Sync and rebuild docs
+ry-next ry-lib project sync
+ry-next site-builder build
+
+# 7. Commit version bump
+git add -A && git diff --staged --stat
+REVIEW_TOKEN=xxx git commit -m "chore: bump version and update docs"
+
+# 8. Push
+git push origin master && git push origin --tags
+
+# 9. Publish to PyPI
+ry-next uv build
+ry-next uv publish --dry-run
+PUBLISH_TOKEN=xxx ry-next uv publish
+```
+
+## Architecture
+
+### Library Types
+- **utility**: Standalone commands (e.g., changelog, ry-lib)
+- **augmentation**: Wraps existing CLI tools (e.g., git, uv)
+- **hybrid**: Can do both (rarely used)
+
+### Directory Structure
+```
+ry-tool/
+├── src/ry_tool/         # Core implementation
+├── docs/libraries/      # Production libraries
+│   ├── OUTPUT_STYLE_GUIDE.md
+│   ├── git/
+│   ├── uv/
+│   ├── changelog/
+│   ├── ry-lib/
+│   │   └── lib/
+│   │       └── templates/  # Library creation templates
+│   └── site-builder/
+└── examples/            # Example libraries
+```
+
+### Library YAML Format
+```yaml
+version: "2.0"
+name: library-name
+type: utility|augmentation
+target: /usr/bin/tool  # For augmentation only
+description: Brief description
+workflows:  # Common usage examples
+  - "ry-next lib cmd1  # Description"
+commands:
+  command-name:
+    description: Brief description
+    execute:
+      - python: |
+          # Code here
+```
+
+## Output Style Guide
+
+### Streams
+- **stdout**: Data output only (JSON, YAML, actual results)
+- **stderr**: All user messages (status, errors, hints)
+
+### Message Prefixes
+```
+✅ Success/completion
+❌ Error/failure
+📦 Building/packaging
+📝 Info/next steps
+⚠️  Warning
+🔑 Security/authentication
+📋 Review/preview
+ℹ️  Neutral information
+🔄 In progress
+💡 Tips (sparingly)
+```
+
+### Output Patterns
+```python
+# Success with next steps
+print("✅ Action completed", file=sys.stderr)
+print("📝 Next: ry-next [command]", file=sys.stderr)
+
+# Error with remedy
+print("❌ Error description", file=sys.stderr)
+print("   Fix: exact command", file=sys.stderr)
+
+# Token generation
+print(f"📋 REVIEW_TOKEN={token}", file=sys.stderr)
+print(f"   Expires in {expires} seconds", file=sys.stderr)
+print(f"   Use: REVIEW_TOKEN={token} git commit -m 'message'", file=sys.stderr)
+```
+
+## ry-lib Module Architecture
+
+All modules use simple functions, not classes:
+- `create_library.py` - `create_library(name, lib_type, target)`
+- `validate_library.py` - `validate_library(name, verbose)`, `validate_all(verbose)`
+- `version_manager.py` - `bump_version(library, bump_type, message)`
+- `registry_builder.py` - `build_registry(output_path, pretty)`, `list_libraries(as_json, installed_only)`
+
+Templates located at:
+- `/docs/libraries/ry-lib/lib/templates/utility.yaml`
+- `/docs/libraries/ry-lib/lib/templates/augmentation.yaml`
+
+Templates use placeholders: `{{name}}`, `{{description}}`, `{{target}}`
+
+## Token System
+
+Three token types for safety:
+- **REVIEW_TOKEN**: Required for git commits after reviewing staged changes
+- **BUMP_TOKEN**: Required for version bumps after dry-run preview
+- **PUBLISH_TOKEN**: Required for PyPI publishing after dry-run
+
+Tokens expire in 300 seconds (5 minutes).
+
+## Testing Commands
+
+```bash
+# Create test library
+cd /tmp && ry-next ry-lib init test-lib --type utility
+
+# Validate all libraries
+ry-next ry-lib validate --all
+
+# Test library help
+ry-next LIBRARY --ry-help
+
+# Show execution plan
+ry-next --ry-run LIBRARY command
+```
+
+## Key Principles
+
+1. Dogfooding: ry-tool manages its own releases
+2. Safety through tokens: Dangerous operations require preview and token
+3. Consistent output: All libraries follow OUTPUT_STYLE_GUIDE.md
+4. Simple functions: Modules expose plain functions, not classes
+5. Template-based creation: Library templates are separate YAML files
+6. Workflows in help: Each library shows common usage patterns

@@ -2,91 +2,124 @@
 """Create a new ry-next library with proper structure."""
 
 import os
+import sys
+import yaml
 from pathlib import Path
-from ry_tool.utils import LibraryBase, validate_name, get_current_datetime, get_current_date
+from typing import Optional
 
 
-class LibraryCreator(LibraryBase):
-    """Handle library creation with shared utilities."""
+def validate_name(name: str) -> bool:
+    """Validate library name."""
+    import re
+    return bool(re.match(r'^[a-zA-Z][a-zA-Z0-9_-]*$', name))
+
+
+def get_current_date() -> str:
+    """Get current date in YYYY-MM-DD format."""
+    from datetime import date
+    return date.today().isoformat()
+
+
+def get_current_datetime() -> str:
+    """Get current datetime in ISO format."""
+    from datetime import datetime
+    return datetime.now().isoformat()
+
+
+def create_library(name: str, lib_type: str = 'utility', target: str = '') -> bool:
+    """
+    Create a new library with all required files.
     
-    def create_library(self, name: str, lib_type: str = 'utility', target: str = '') -> bool:
-        """
-        Create a new library with all required files.
-        
-        Args:
-            name: Library name
-            lib_type: Type of library (augmentation, utility, hybrid)
-            target: Target binary for augmentation libraries
-        
-        Returns:
-            True if successful, False otherwise
-        """
-        # Validate name
-        if not validate_name(name):
-            self.error_message(f"Invalid library name: {name}")
-            print("   Use only letters, numbers, hyphens, and underscores")
-            return False
-        
-        # Check if library already exists
-        if self.library_exists(name):
-            self.error_message(f"Library {name} already exists")
-            return False
+    Args:
+        name: Library name
+        lib_type: Type of library (augmentation, utility, hybrid)
+        target: Target binary for augmentation libraries
     
-        try:
-            lib_dir = self.get_library_dir(name)
-            lib_dir.mkdir(parents=True)
-            (lib_dir / 'lib').mkdir()
+    Returns:
+        True if successful, False otherwise
+    """
+    # Validate name
+    if not validate_name(name):
+        print(f"❌ Invalid library name: {name}", file=sys.stderr)
+        print("   Use only letters, numbers, hyphens, and underscores", file=sys.stderr)
+        return False
+    
+    # Determine library directory
+    base_path = Path('docs/libraries')
+    if not base_path.exists():
+        base_path = Path('libraries')
+        if not base_path.exists():
+            base_path.mkdir(parents=True)
+    
+    lib_dir = base_path / name
+    
+    # Check if library already exists
+    if lib_dir.exists():
+        print(f"❌ Library {name} already exists", file=sys.stderr)
+        return False
+    
+    try:
+        lib_dir.mkdir(parents=True)
+        (lib_dir / 'lib').mkdir()
         
-            # Create library.yaml
+        # Load template based on type
+        template_path = Path(__file__).parent / 'templates' / f'{lib_type}.yaml'
+        if template_path.exists():
+            with open(template_path) as f:
+                template_content = f.read()
+            
+            # Replace template variables
+            description = f'{name.replace("-", " ").title()} library for ry-next'
+            template_content = template_content.replace('{{name}}', name)
+            template_content = template_content.replace('{{description}}', description)
+            if lib_type == 'augmentation' and target:
+                template_content = template_content.replace('{{target}}', target)
+            
+            # Parse the templated YAML
+            lib_config = yaml.safe_load(template_content)
+        else:
+            # Fallback to basic structure if template not found
             lib_config = {
                 'version': '2.0',
                 'name': name,
                 'type': lib_type,
                 'description': f'{name.replace("-", " ").title()} library for ry-next',
-                'commands': {}
+                'commands': {
+                    'hello': {
+                        'description': 'Example command',
+                        'execute': [
+                            {'shell': f'echo "Hello from {name}!" >&2'}
+                        ]
+                    }
+                },
+                'workflows': [
+                    f'ry-next {name} hello     # Run example command'
+                ]
             }
-        
             if lib_type == 'augmentation' and target:
                 lib_config['target'] = target
         
-            # Add example command based on type
-            if lib_type == 'augmentation':
-                lib_config['commands']['example'] = {
-                    'description': 'Example augmentation command',
-                    'relay': 'native',
-                    'augment': {
-                        'before': [
-                            {'shell': f'echo "[{name}] Augmenting command..." >&2'}
-                        ]
-                    }
-                }
-            else:
-                lib_config['commands']['hello'] = {
-                    'description': 'Example command',
-                    'execute': [
-                        {'shell': f'echo "Hello from {name}!"'}
-                    ]
-                }
+        # Save library config
+        with open(lib_dir / f'{name}.yaml', 'w') as f:
+            yaml.dump(lib_config, f, default_flow_style=False, sort_keys=False)
         
-            # Save library config
-            self.file_manager.save_yaml(lib_config, self.get_library_yaml(name))
+        # Create meta.yaml
+        meta = {
+            'name': name,
+            'version': '0.1.0',
+            'description': lib_config.get('description', ''),
+            'author': os.environ.get('USER', 'unknown'),
+            'created': get_current_datetime(),
+            'updated': get_current_date()
+        }
         
-            # Create meta.yaml
-            meta = {
-                'name': name,
-                'version': '0.1.0',
-                'description': lib_config['description'],
-                'author': os.environ.get('USER', 'unknown'),
-                'created': get_current_datetime(),
-                'updated': get_current_date()
-            }
-            
-            self.file_manager.save_yaml(meta, self.get_meta_yaml(name))
+        with open(lib_dir / 'meta.yaml', 'w') as f:
+            yaml.dump(meta, f, default_flow_style=False)
         
-            # Create README.md
-            readme = f"""# {name}
+        # Create README.md
+        readme = f"""# {name}
 
-{lib_config['description']}
+{lib_config.get('description', '')}
 
 ## Installation
 
@@ -111,12 +144,12 @@ This library was created with ry-lib:
 ry-next ry-lib init {name} --type {lib_type}
 ```
 """
-            
-            with open(lib_dir / 'README.md', 'w') as f:
-                f.write(readme)
         
-            # Create CHANGELOG.md
-            changelog = f"""# Changelog - {name}
+        with open(lib_dir / 'README.md', 'w') as f:
+            f.write(readme)
+        
+        # Create CHANGELOG.md
+        changelog = f"""# Changelog - {name}
 
 ## [0.1.0] - {get_current_date()}
 
@@ -124,37 +157,33 @@ ry-next ry-lib init {name} --type {lib_type}
 - Initial release
 - Basic command structure
 """
-            
-            with open(lib_dir / 'CHANGELOG.md', 'w') as f:
-                f.write(changelog)
         
-            self.success_message(f"Created library: {name}")
-            print(f"   Type: {lib_type}")
-            print(f"   Location: {lib_dir}")
-            print(f"\n📝 Next steps:")
-            print(f"   1. Edit {lib_dir}/{name}.yaml to add commands")
-            print(f"   2. Test with: ry-next {name} --ry-help")
-            print(f"   3. Install with: ry-next --install {name}")
-            
-            return True
+        with open(lib_dir / 'CHANGELOG.md', 'w') as f:
+            f.write(changelog)
         
-        except Exception as e:
-            self.error_message(f"Failed to create library: {e}")
-            return False
-
-
-# Direct usage: creator = LibraryCreator(); creator.create_library(name, type, target)
+        print(f"✅ Created library: {name}", file=sys.stderr)
+        print(f"ℹ️  Type: {lib_type}", file=sys.stderr)
+        print(f"   Location: {lib_dir}", file=sys.stderr)
+        print(f"📝 Next steps:", file=sys.stderr)
+        print(f"   1. Edit {lib_dir}/{name}.yaml to add commands", file=sys.stderr)
+        print(f"   2. Test with: ry-next {name} --ry-help", file=sys.stderr)
+        print(f"   3. Install with: ry-next --install {name}", file=sys.stderr)
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to create library: {e}", file=sys.stderr)
+        return False
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: create_library.py <name> [type] [target]")
+        print("Usage: create_library.py <name> [type] [target]", file=sys.stderr)
         sys.exit(1)
     
     name = sys.argv[1]
     lib_type = sys.argv[2] if len(sys.argv) > 2 else 'utility'
     target = sys.argv[3] if len(sys.argv) > 3 else ''
     
-    creator = LibraryCreator()
-    success = creator.create_library(name, lib_type, target)
+    success = create_library(name, lib_type, target)
     sys.exit(0 if success else 1)

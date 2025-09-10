@@ -3,9 +3,16 @@ name: ry-lib
 type: utility
 description: Library development and management for ry-next
 
+workflows:
+  - "ry-next ry-lib init my-lib --type utility     # Create utility library"
+  - "ry-next ry-lib init my-git --type augmentation --target /usr/bin/git  # Augment git"
+  - "ry-next ry-lib validate --all                 # Validate all libraries"
+  - "ry-next ry-lib project init                   # Create project.yaml"
+  - "ry-next ry-lib bump my-lib --type patch       # Bump library version"
+
 commands:
   init:
-    description: Initialize a new ry-next library
+    description: Create a new library (utility or augmentation type)
     arguments:
       name: required
     flags:
@@ -13,9 +20,10 @@ commands:
         type: enum
         values: [augmentation, utility, hybrid]
         default: utility
+        description: "Library type - utility: standalone commands, augmentation: wraps/enhances existing CLI tool"
       target:
         type: string
-        description: Target binary for augmentation libraries
+        description: Target binary path for augmentation libraries (e.g., /usr/bin/git)
     
     execute:
       - python: |

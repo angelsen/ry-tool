@@ -3,6 +3,12 @@ name: site-builder
 type: library
 description: Static site generator from project.yaml manifests
 
+workflows:
+  - "ry-next ry-lib project init             # Create project.yaml"
+  - "ry-next site-builder build              # Generate site"
+  - "ry-next site-builder build --theme terminal  # Use terminal theme"
+  - "ry-next site-builder clean              # Remove generated files"
+
 commands:
   build:
     description: Generate static site from project.yaml

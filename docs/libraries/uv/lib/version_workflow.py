@@ -104,13 +104,9 @@ def release_changelog(version: str, changelog_path: Path) -> bool:
     Returns:
         True if successful
     """
-    result = subprocess.run(
-        ['ry-next', 'changelog', 'release', version],
-        cwd=changelog_path.parent,
-        capture_output=True,
-        text=True
-    )
-    return result.returncode == 0
+    # Import directly from changelog library
+    from changelog_core import release_version
+    return release_version(version, None)  # None for date means today
 
 
 def commit_version_bump(package_name: str, old_version: str, new_version: str):
@@ -196,15 +192,15 @@ if __name__ == "__main__":
     # Test functions
     try:
         version, name = get_current_version()
-        print(f"Current version: {name} {version}")
+        print(f"Current version: {name} {version}", file=sys.stderr)
         
         if check_git_clean():
-            print("Git working directory is clean")
+            print("Git working directory is clean", file=sys.stderr)
         else:
-            print("Git working directory has changes")
+            print("Git working directory has changes", file=sys.stderr)
         
         changelog = check_changelog_exists()
         if changelog:
-            print(f"Changelog found: {changelog}")
+            print(f"Changelog found: {changelog}", file=sys.stderr)
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}", file=sys.stderr)

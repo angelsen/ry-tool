@@ -1,0 +1,82 @@
+version: "2.0"
+name: "{{name}}"
+type: augmentation
+target: "{{target}}"
+description: "{{description}}"
+
+workflows:
+  - "ry-next {{name}} status                 # Check status"
+  - "ry-next {{name}} validate --dry-run      # Preview changes"
+  - "ry-next {{name}} process                 # Execute"
+
+commands:
+  status:
+    description: Show current status
+    execute:
+      - python: |
+          import subprocess
+          import sys
+          
+          target = "{{target}}"
+          result = subprocess.run([target, '--version'], capture_output=True, text=True)
+          if result.returncode == 0:
+              print(f"✅ {result.stdout.strip()}", file=sys.stderr)
+          else:
+              print(f"❌ Could not get version from {target}", file=sys.stderr)
+              sys.exit(1)
+
+  validate:
+    description: Validate before processing
+    flags:
+      dry-run:
+        type: bool
+        description: Preview without making changes
+      verbose:
+        type: bool
+        description: Show detailed output
+    
+    execute:
+      - python: |
+          import sys
+          
+          if flags.get('dry-run'):
+              print("🔍 Preview mode - no changes will be made", file=sys.stderr)
+          
+          # Add validation logic here
+          print("✅ Validation passed", file=sys.stderr)
+          
+          if flags.get('verbose'):
+              print("   All checks completed successfully", file=sys.stderr)
+
+  process:
+    description: Process with augmentation
+    arguments:
+      command:
+        required: false
+        description: Command to augment
+    flags:
+      force:
+        type: bool
+        description: Skip confirmation prompts
+    
+    relay: native
+    augment:
+      before:
+        - python: |
+            import sys
+            
+            # Pre-processing checks
+            if not flags.get('force'):
+                print("📦 Processing with {{name}} augmentation...", file=sys.stderr)
+            
+            # Add your pre-processing logic here
+            # For example: validate environment, check permissions, etc.
+      
+      after:
+        - python: |
+            print("✅ Completed successfully", file=sys.stderr)
+            print("📝 Next: Review the results", file=sys.stderr)
+
+  # Catch-all to relay other commands
+  '*':
+    relay: native

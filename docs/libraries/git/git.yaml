@@ -4,6 +4,13 @@ type: augmentation
 target: /usr/bin/git
 description: Git workflow with review tokens and commit validation
 
+workflows:
+  - "ry-next git add .                        # Stage files"
+  - "ry-next git diff --staged                # Review and get token"
+  - "REVIEW_TOKEN=xxx ry-next git commit -m 'message'  # Commit with token"
+  - "ry-next git push --dry-run               # Preview push"
+  - "ry-next git tag v1.0.0                   # Tag with changelog update"
+
 commands:
   # Show staged changes and generate review token
   diff:
@@ -173,16 +180,20 @@ commands:
                 
                 # Check for CHANGELOG.md
                 if Path('CHANGELOG.md').exists():
+                    # Check it has unreleased content before tagging
+                    from changelog_core import has_unreleased_content
+                    
+                    if not has_unreleased_content():
+                        print("❌ CHANGELOG.md has no unreleased changes", file=sys.stderr)
+                        print("   Add your changes under [Unreleased] section", file=sys.stderr)
+                        print("   Then tag with: git tag " + tag_name, file=sys.stderr)
+                        sys.exit(1)
                     print(f"📝 Releasing version {version} in changelog...", file=sys.stderr)
                     
-                    # Call changelog release
-                    result = subprocess.run(
-                        ['ry-next', 'changelog', 'release', version],
-                        capture_output=True,
-                        text=True
-                    )
+                    # Use changelog library directly
+                    from changelog_core import release_version
                     
-                    if result.returncode == 0:
+                    if release_version(version, None):  # None = use today's date
                         # Commit the changelog update
                         subprocess.run(['/usr/bin/git', 'add', 'CHANGELOG.md'], check=False)
                         subprocess.run(
@@ -259,7 +270,10 @@ commands:
       after:
         - shell: |
             if [ -n "$(/usr/bin/git diff --staged --name-only 2>/dev/null)" ]; then
-                echo "📝 Files staged. Review with: git diff --staged" >&2
+                echo "📝 Files staged" >&2
+                echo "   Review: git diff --staged --stat" >&2
+                echo "   Get token: git diff --staged" >&2
+                echo "💡 Tip: Use Task agent to summarize large changes" >&2
             fi
   
   # All other git commands automatically relay to native git

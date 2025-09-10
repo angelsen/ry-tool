@@ -4,6 +4,13 @@ type: augmentation
 target: /usr/bin/uv
 description: Python package management with automated version workflows
 
+workflows:
+  - "ry-next uv version --bump patch --dry-run  # Preview version bump"
+  - "BUMP_TOKEN=xxx ry-next uv version --bump patch  # Execute bump"
+  - "ry-next uv build                        # Build package"
+  - "ry-next uv publish --dry-run            # Verify publish requirements"
+  - "PUBLISH_TOKEN=xxx ry-next uv publish    # Publish to PyPI"
+
 commands:
   # Version management with token-based workflow
   version:
@@ -32,6 +39,17 @@ commands:
                     print("❌ Working directory not clean", file=sys.stderr)
                     print("   Commit or stash changes first", file=sys.stderr)
                     sys.exit(1)
+                
+                # Check CHANGELOG has content to release
+                from pathlib import Path
+                from changelog_core import has_unreleased_content
+                
+                if Path('CHANGELOG.md').exists():
+                    if not has_unreleased_content():
+                        print("⚠️  CHANGELOG.md has no unreleased changes", file=sys.stderr)
+                        print("   Add changes under [Unreleased] before bumping", file=sys.stderr)
+                else:
+                    print("⚠️  No CHANGELOG.md found", file=sys.stderr)
                 
                 # Get package info for display
                 package = flags.get('package')
@@ -104,6 +122,19 @@ commands:
                     sys.exit(1)
                 
                 print("✅ Bump token verified", file=sys.stderr)
+                
+                # Check CHANGELOG has unreleased content
+                from pathlib import Path
+                from changelog_core import has_unreleased_content
+                
+                if Path('CHANGELOG.md').exists():
+                    if not has_unreleased_content():
+                        print("❌ CHANGELOG.md has no unreleased changes", file=sys.stderr)
+                        print("   Add your changes under [Unreleased] section", file=sys.stderr)
+                        print("   Or run: ry-next changelog validate", file=sys.stderr)
+                        sys.exit(1)
+                    
+                    print("✅ CHANGELOG has unreleased content", file=sys.stderr)
                 
                 # Check git clean
                 from version_workflow import check_git_clean

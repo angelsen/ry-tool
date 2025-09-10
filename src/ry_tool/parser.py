@@ -240,6 +240,14 @@ class CommandParser:
                     if cmd_name != '*':  # Skip catch-all
                         desc = cmd_config.get('description', 'No description')
                         help_lines.append(f"  {cmd_name:<15} {desc}")
+                
+                # Add common workflows if defined
+                if hasattr(library_config, 'workflows') and library_config.workflows:
+                    help_lines.append("")
+                    help_lines.append("Common workflow:")
+                    for workflow in library_config.workflows:
+                        help_lines.append(f"  {workflow}")
+                
                 help_lines.append("")
                 help_lines.append("Use: ry-next <library> <command> --help for command details")
         

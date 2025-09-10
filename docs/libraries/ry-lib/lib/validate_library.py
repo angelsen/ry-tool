@@ -1,119 +1,168 @@
 #!/usr/bin/env python3
 """Validate ry-next library structure and content."""
 
+import sys
+import yaml
 from pathlib import Path
-from ry_tool.utils import LibraryBase, handle_errors
+from typing import List, Optional
 
 
-class LibraryValidator(LibraryBase):
-    """Handle library validation with shared utilities."""
+def find_libraries_dir() -> Optional[Path]:
+    """Find the libraries directory."""
+    for path in [Path('docs/libraries'), Path('libraries')]:
+        if path.exists():
+            return path
+    return None
+
+
+def load_yaml(file_path: Path) -> Optional[dict]:
+    """Load YAML file."""
+    try:
+        with open(file_path) as f:
+            return yaml.safe_load(f)
+    except Exception:
+        return None
+
+
+def validate_library(name: str, verbose: bool = False) -> bool:
+    """
+    Validate a specific library.
     
-    def validate_library(self, name: str, verbose: bool = False) -> bool:
-        """
-        Validate a specific library.
-        
-        Args:
-            name: Library name to validate
-            verbose: Show detailed information
-        
-        Returns:
-            True if valid, False otherwise
-        """
-        if not self.library_exists(name):
-            self.error_message(f"Library not found: {name}")
+    Args:
+        name: Library name to validate
+        verbose: Show detailed information
+    
+    Returns:
+        True if valid, False otherwise
+    """
+    lib_base = find_libraries_dir()
+    if not lib_base:
+        print("❌ No libraries directory found", file=sys.stderr)
+        return False
+    
+    lib_dir = lib_base / name
+    if not lib_dir.exists():
+        print(f"❌ Library not found: {name}", file=sys.stderr)
+        return False
+    
+    lib_yaml = lib_dir / f"{name}.yaml"
+    if not lib_yaml.exists():
+        print(f"❌ Missing {name}.yaml", file=sys.stderr)
+        return False
+    
+    try:
+        # Load library configuration
+        data = load_yaml(lib_yaml)
+        if not data:
+            print(f"❌ Could not load {name}.yaml", file=sys.stderr)
             return False
-    
-        try:
-            # Load library configuration
-            data = self.load_library_config(name)
-            if not data:
-                self.error_message(f"Could not load {name}.yaml")
-                return False
-            
-            # Validate structure
-            assert data.get('version') == '2.0', "Must be version 2.0"
-            assert 'name' in data, "Missing name field"
-            assert 'type' in data, "Missing type field"
-            assert data['type'] in ['augmentation', 'utility', 'hybrid'], f"Invalid type: {data['type']}"
-            
-            if data['type'] == 'augmentation':
-                # Check for target or relay commands
-                has_target = 'target' in data
-                has_relay = any('relay' in cmd for cmd in data.get('commands', {}).values())
-                assert has_target or has_relay, "Augmentation library needs target or relay commands"
-            
-            # Check meta.yaml
-            meta = self.load_library_meta(name)
+        
+        # Validate structure
+        errors = []
+        
+        if data.get('version') != '2.0':
+            errors.append("Must be version 2.0")
+        if 'name' not in data:
+            errors.append("Missing name field")
+        if 'type' not in data:
+            errors.append("Missing type field")
+        elif data['type'] not in ['augmentation', 'utility', 'hybrid']:
+            errors.append(f"Invalid type: {data['type']}")
+        
+        if data.get('type') == 'augmentation':
+            # Check for target or relay commands
+            has_target = 'target' in data
+            has_relay = any('relay' in cmd for cmd in data.get('commands', {}).values())
+            if not (has_target or has_relay):
+                errors.append("Augmentation library needs target or relay commands")
+        
+        # Check meta.yaml
+        meta_yaml = lib_dir / 'meta.yaml'
+        if meta_yaml.exists():
+            meta = load_yaml(meta_yaml)
             if meta:
-                assert 'version' in meta, "meta.yaml missing version"
-                assert 'name' in meta, "meta.yaml missing name"
-            
-            self.success_message(f"{name}: Valid")
-            
-            if verbose:
-                print(f"   Version: {data.get('version')}")
-                print(f"   Type: {data.get('type')}")
-                print(f"   Commands: {len(data.get('commands', {}))}")
+                if 'version' not in meta:
+                    errors.append("meta.yaml missing version")
+                if 'name' not in meta:
+                    errors.append("meta.yaml missing name")
+        
+        if errors:
+            print(f"❌ {name}: Invalid", file=sys.stderr)
+            for error in errors:
+                print(f"   - {error}", file=sys.stderr)
+            return False
+        
+        print(f"✅ {name}: Valid", file=sys.stderr)
+        
+        if verbose:
+            print(f"   Version: {data.get('version')}", file=sys.stderr)
+            print(f"   Type: {data.get('type')}", file=sys.stderr)
+            print(f"   Commands: {len(data.get('commands', {}))}", file=sys.stderr)
+            if meta_yaml.exists():
+                meta = load_yaml(meta_yaml)
                 if meta:
-                    print(f"   Library version: {meta.get('version', '0.0.0')}")
-            
-            return True
-            
-        except AssertionError as e:
-            self.error_message(f"{name}: {e}")
-            return False
-        except Exception as e:
-            self.error_message(f"{name}: {e}")
-            return False
-
-
-    def validate_all(self, verbose: bool = False) -> bool:
-        """
-        Validate all libraries in docs_next/libraries.
-        
-        Args:
-            verbose: Show detailed information
-        
-        Returns:
-            True if all valid, False if any failed
-        """
-        libraries = self.list_libraries()
-        if not libraries:
-            self.info_message("No libraries found")
-            return True
-        
-        failed = []
-        validated = 0
-        
-        for lib_name in libraries:
-            if self.validate_library(lib_name, verbose):
-                validated += 1
-            else:
-                failed.append(lib_name)
-        
-        print(f"\n📊 Validated {validated} libraries")
-        if failed:
-            self.error_message(f"Failed: {', '.join(failed)}")
-            return False
+                    print(f"   Library version: {meta.get('version', '0.0.0')}", file=sys.stderr)
         
         return True
+        
+    except Exception as e:
+        print(f"❌ {name}: {e}", file=sys.stderr)
+        return False
 
 
-# Direct usage: validator = LibraryValidator(); validator.validate_library(name, verbose)
+def validate_all(verbose: bool = False) -> bool:
+    """
+    Validate all libraries.
+    
+    Args:
+        verbose: Show detailed information
+    
+    Returns:
+        True if all valid, False if any failed
+    """
+    lib_base = find_libraries_dir()
+    if not lib_base:
+        print("❌ No libraries directory found", file=sys.stderr)
+        return False
+    
+    # Find all library directories
+    libraries = []
+    for item in lib_base.iterdir():
+        if item.is_dir() and (item / f"{item.name}.yaml").exists():
+            libraries.append(item.name)
+    
+    if not libraries:
+        print("ℹ️  No libraries found", file=sys.stderr)
+        return True
+    
+    failed = []
+    validated = 0
+    
+    for lib_name in sorted(libraries):
+        if validate_library(lib_name, verbose):
+            validated += 1
+        else:
+            failed.append(lib_name)
+    
+    print(f"✅ Validated {validated} libraries", file=sys.stderr)
+    if failed:
+        print(f"❌ Failed: {', '.join(failed)}", file=sys.stderr)
+        return False
+    
+    return True
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        validator = LibraryValidator()
         if sys.argv[1] == '--all':
             verbose = '--verbose' in sys.argv
-            success = validator.validate_all(verbose)
+            success = validate_all(verbose)
         else:
             verbose = '--verbose' in sys.argv
-            success = validator.validate_library(sys.argv[1], verbose)
+            success = validate_library(sys.argv[1], verbose)
     else:
-        print("Usage: validate_library.py <name> [--verbose]")
-        print("       validate_library.py --all [--verbose]")
+        print("Usage: validate_library.py <name> [--verbose]", file=sys.stderr)
+        print("       validate_library.py --all [--verbose]", file=sys.stderr)
         sys.exit(1)
     
     sys.exit(0 if success else 1)
