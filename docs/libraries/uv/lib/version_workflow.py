@@ -155,32 +155,18 @@ def check_publish_requirements(package: Optional[str] = None) -> Tuple[bool, str
     if not dist_dir.exists() or not list(dist_dir.glob('*')):
         return False, f"No dist files found. Run: uv build"
     
-    # Get version from dist files
-    version = None
-    package_name = None
-    
-    for file in dist_dir.glob('*.whl'):
-        # Extract from wheel filename
-        parts = file.stem.split('-')
-        if len(parts) >= 2:
-            package_name = parts[0]
-            version = parts[1]
-            break
-    
-    if not version:
-        for file in dist_dir.glob('*.tar.gz'):
-            # Extract from sdist
-            stem = file.stem
-            if stem.endswith('.tar'):
-                stem = stem[:-4]
-            parts = stem.rsplit('-', 1)
-            if len(parts) == 2:
-                package_name = parts[0]
-                version = parts[1]
-                break
-    
-    if not version or not package_name:
-        return False, "Could not determine version from dist files"
+    # Get package info from uv
+    try:
+        cmd = ['/usr/bin/uv', 'version', '--output-format', 'json']
+        if package:
+            cmd.extend(['--package', package])
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        data = json.loads(result.stdout)
+        package_name = data['package_name']
+        version = data['version']
+    except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError) as e:
+        return False, f"Could not get package info from uv: {e}"
     
     # Check if version is tagged
     tag = f"{package_name}-v{version}"

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed argument parsing for augmentation libraries to preserve exact user input
+  - Numeric flags like `-10` are no longer incorrectly converted to `--10`
+  - Commands like `git log --oneline -10` now work correctly through ry-next wrappers
+  - Augmentation libraries now use raw unparsed arguments for relay to native tools
+- Fixed uv library's publish check to use `uv version --output-format json` instead of parsing dist filenames
+  - More reliable package name and version detection
+  - Properly handles packages with hyphens in names
+
 ## [1.0.0] - 2025-09-10
 
 ### Changed

@@ -278,26 +278,33 @@ class ContextFactory:
         """
         from .context import ExecutionContext
         
-        # Build remaining_args for relay (all original args)
-        remaining_args = []
-        if parsed.command:
-            remaining_args.append(parsed.command)
-        if parsed.subcommand:
-            remaining_args.append(parsed.subcommand)
-        remaining_args.extend(parsed.positionals)
-        
-        # Add flags in original format
-        for flag, value in parsed.flags.items():
-            if len(flag) == 1:
-                remaining_args.append(f'-{flag}')
-            else:
-                remaining_args.append(f'--{flag}')
-            if value is not True:
-                remaining_args.append(str(value))
-        
-        if parsed.remaining:
-            remaining_args.append('--')
-            remaining_args.extend(parsed.remaining)
+        # For augmentation libraries, use raw args to preserve exact user input
+        # This ensures flags like -10 aren't incorrectly parsed as --10
+        if library.type == 'augmentation' and parsed.raw_args:
+            # Use ALL raw args - they represent the actual git/tool command
+            remaining_args = parsed.raw_args
+        else:
+            # For other library types, reconstruct from parsed components
+            # Build remaining_args for relay (all original args)
+            remaining_args = []
+            if parsed.command:
+                remaining_args.append(parsed.command)
+            if parsed.subcommand:
+                remaining_args.append(parsed.subcommand)
+            remaining_args.extend(parsed.positionals)
+            
+            # Add flags in original format
+            for flag, value in parsed.flags.items():
+                if len(flag) == 1:
+                    remaining_args.append(f'-{flag}')
+                else:
+                    remaining_args.append(f'--{flag}')
+                if value is not True:
+                    remaining_args.append(str(value))
+            
+            if parsed.remaining:
+                remaining_args.append('--')
+                remaining_args.extend(parsed.remaining)
         
         context = ExecutionContext(
             command=parsed.command,
