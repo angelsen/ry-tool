@@ -337,6 +337,7 @@
 <span class="command">tag</span>
 <span class="command">push</span>
 <span class="command">add</span>
+<span class="command">+1 more</span>
 </div>
 </div>
 <div class="library-card">
@@ -359,10 +360,11 @@
 <div class="commands">
 <span class="command">build</span>
 <span class="command">clean</span>
+<span class="command">default</span>
 </div>
 </div>
 <div class="library-card">
-<span class="version">0.1.0</span>
+<span class="version">0.2.0</span>
 <h3>uv</h3>
 <p>Python package management with automated version workflows</p>
 <div class="commands">
@@ -375,17 +377,17 @@
 </section>
 <section id="documentation">
 <h2>Documentation</h2>
-<p>A clean, modular command augmentation framework that enhances existing CLI tools without breaking their native behavior.</p>
+<p>A command augmentation framework that wraps and enhances existing CLI tools without breaking their native behavior.</p>
 <h3>Features</h3>
-<p>- **Command Augmentation**: Wrap and enhance existing CLI tools</p>
+<p>- **Command Augmentation**: Enhance existing CLI tools with validation, safety checks, and workflows</p>
 <p>- **Clean Architecture**: Modular design with single-responsibility components  </p>
-<p>- **Type-Safe Processing**: Recursive template processing with type dispatch</p>
+<p>- **Type-Safe Processing**: Recursive template processing with proper type dispatch</p>
 <p>- **Token-Based Safety**: Time-limited tokens for dangerous operations</p>
 <p>- **Library System**: Reusable command definitions with metadata</p>
-<p>- **No Shell Escaping**: Direct subprocess execution for safety</p>
+<p>- **Direct Execution**: No shell escaping for safety</p>
 <h3>Installation</h3>
 <pre><code>
-pip install -e .
+uv tool isntall ry-tool
 </code></pre>
 <p>This installs the <code>ry</code> command globally.</p>
 <h3>Quick Start</h3>
@@ -407,22 +409,9 @@ ry --ry-run git commit -m "test"
 <p>- **uv** - Python package management with automated version workflows</p>
 <p>- **changelog** - Simple changelog management following Keep a Changelog</p>
 <p>- **ry-lib** - Library development and management tools</p>
-<h3>Documentation</h3>
-<p>- [Full Documentation](docs/README_RYNEXT.md)</p>
-<p>- [Library Development](docs/libraries/ry-lib/README.md)</p>
-<p>- [Examples](examples/README.md)</p>
-<h3>Project Structure</h3>
-<pre><code>
-ry/
-├── src/ry_next/         # Core implementation
-├── docs/
-│   ├── libraries/       # Production libraries
-│   └── README_RYNEXT.md # Full documentation
-├── examples/            # Example libraries
-└── _archive/            # Old ry-tool code (deprecated)
-</code></pre>
-<h3>Key Concepts</h3>
-<h4>Library Format (v2.0)</h4>
+<p>- **site-builder** - Static documentation site generator</p>
+<h3>Library System</h3>
+<h4>Example: Git Enhancement</h4>
 <pre><code>
 version: "2.0"
 name: git
@@ -443,13 +432,40 @@ commands:
 <p>Critical operations require preview and token verification:</p>
 <pre><code>
 # Preview changes
-git diff --staged  # → Generates REVIEW_TOKEN
+ry git diff --staged  # → Generates REVIEW_TOKEN
 
 # Execute with token
-REVIEW_TOKEN=xxx git commit -m "message"
+REVIEW_TOKEN=xxx ry git commit -m "message"
+</code></pre>
+<h3>Project Structure</h3>
+<pre><code>
+ry-tool/
+├── src/ry_tool/         # Core implementation
+├── docs/
+│   ├── libraries/       # Production libraries
+│   └── ARCHITECTURE.md  # Technical documentation
+├── examples/            # Example libraries
+└── CLAUDE.md           # AI assistant guidance
 </code></pre>
 <h3>Development</h3>
-<p>See [docs/README_RYNEXT.md](docs/README_RYNEXT.md) for complete documentation.</p>
+<pre><code>
+# Run linter
+ruff check src/ry_tool/ --fix
+
+# Build distribution
+uv build
+
+# Create a new library
+ry ry-lib create <name> <type>
+
+# Validate libraries
+ry ry-lib validate --all
+</code></pre>
+<h3>Documentation</h3>
+<p>- [Architecture Guide](docs/ARCHITECTURE.md) - Technical details and design</p>
+<p>- [Library Development](docs/libraries/ry-lib/README.md) - Creating custom libraries</p>
+<p>- [Examples](examples/README.md) - Working examples</p>
+<p>- [Style Guide](docs/libraries/OUTPUT_STYLE_GUIDE.md) - Output formatting standards</p>
 <h3>License</h3>
 <p>MIT</p>
 </section>

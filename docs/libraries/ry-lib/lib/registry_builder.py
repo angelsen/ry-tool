@@ -62,7 +62,13 @@ def build_registry(output_path: Optional[str] = None, pretty: bool = False) -> b
                     if meta:
                         entry['version'] = meta.get('version', '0.0.0')
                         entry['author'] = meta.get('author', 'unknown')
-                        entry['updated'] = meta.get('updated', '')
+                        # Convert date objects to strings for JSON serialization
+                        updated = meta.get('updated', '')
+                        if hasattr(updated, 'isoformat'):
+                            updated = updated.isoformat()
+                        elif hasattr(updated, 'strftime'):
+                            updated = updated.strftime('%Y-%m-%d')
+                        entry['updated'] = str(updated) if updated else ''
                 
                 registry['libraries'][lib_dir.name] = entry
                 
